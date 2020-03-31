@@ -5,7 +5,11 @@ inspired by functional-paradigm programming languages such
 as LISP, Haskell, and others. It comprises of various 
 bloat-free features inherited by the FP paradigm to 
 ease the development of embedded and efficient software
-without the implications of a slow runtime.
+without the implications of a slow runtime. Ether was 
+built to fulfill one goal: improve the already-perfected language 
+C. By combining procedural and functional, Ether
+is able to improve where C lacks. One example is 
+atomic expressions. 
 
 ** Features (bloat-free)
 
@@ -27,16 +31,24 @@ develop high-quality and effient code.
 ** Installation
 
 Ether provides platform-specific scripts to automatically
-build the entire platform. 
+build the entire platform. See Dependencies section for details.
 
-+ Windows :: build.bat
-+ MacOS / Linux :: build.sh
++ Windows: build.bat
++ MacOS: build.sh
++ Linux (all distributions): build.sh
 
 After building, the relevent binaries can be found in 
 the bin/ directory.
 
-Currently, Ether only supports 64-bit desktop platforms,
-but we have a TODO to expand it further.
+**** Dependencies
+
++ gcc (or any other standard-compliant C compiler)
+
+*** Platform Support
+
+Because of the way Ether compiles native programs without
+using a back-end like LLVM or Clang, it (for now) only 
+supports 64-bit desktop platforms. 
 
 ** Example 
 
