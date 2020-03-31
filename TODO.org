@@ -1,2 +1,0 @@
-* TASKS
-*** TODO add instructions on how to install binaries to PATH in README.org
