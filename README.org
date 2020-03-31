@@ -67,7 +67,7 @@ supports 64-bit desktop platforms.
 	[void: entity_render [entity*:e]
 	    [renderer::submit e.mesh_comp]]]
 
-[uint: main [int:argc char*:argv]
+[uint: main [int:argc char**:argv]
     [entity*:e]
 	[comptime
 		[assert [== [sizeof entity*] 8]]]	# only 64-bit
