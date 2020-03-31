@@ -1,0 +1,74 @@
+* Ether
+
+Ether is a low-level, systems programming language 
+inspired by functional-paradigm programming languages such
+as LISP, Haskell, and others. It comprises of various 
+bloat-free features inherited by the FP paradigm to 
+ease the development of embedded and efficient software
+without the implications of a slow runtime.
+
+** Features (bloat-free)
+
+Ether acts more like a toolset than a solution. It gives users
+the ability to develop on a dynamic platform without compromising
+ease of use. Features like 'compile-time code execution' and 
+'evaluating expressions in an interpreter' are necessary to
+develop high-quality and effient code.
+
++ compile-time code execution
++ static type system
++ ether-static interpreter
++ built-in build-system 
++ runtime checks in debug-mode
+  + stack array bounds
++ concurrent and safe code execution
++ minimal standard library
+
+** Installation
+
+Ether provides platform-specific scripts to automatically
+build the entire platform. 
+
++ Windows :: build.bat
++ MacOS / Linux :: build.sh
+
+After building, the relevent binaries can be found in 
+the bin/ directory.
+
+Currently, Ether only supports 64-bit desktop platforms,
+but we have a TODO to expand it further.
+
+** Example 
+
+#+BEGIN_SRC ether
+[deploy stdio]
+[deploy "renderer.eth"]
+
+[namespace zf
+	[static]
+	[void: entity_init [entity*:e]
+	    [e.pos = null]
+		[e.rot = null]
+		[e.scl = null]
+		[std::putsl e.name]]
+
+	[void: entity_render [entity*:e]
+	    [renderer::submit e.mesh_comp]]]
+
+[uint: main [int:argc char*:argv]
+    [entity*:e]
+	[comptime
+		[assert [== [sizeof entity*] 8]]]	# only 64-bit
+	[zf::entity_init e]
+	[zf::entity_render e]
+#+END_SRC
+
+** License
+
+This project is licensed under the terms of the MIT license.
+
+** Contribution
+
+This project is managed under GitHub only, so if 
+you want to contribute to Ether's development, open
+a pull request.
