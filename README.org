@@ -33,12 +33,12 @@ develop high-quality and effient code.
 Ether provides platform-specific scripts to automatically
 build the entire platform. See Dependencies section for details.
 
-+ Windows: build.bat
-+ MacOS: build.sh
-+ Linux (all distributions): build.sh
++ *Windows*: build.bat
++ *MacOS*: build.sh
++ *Linux* (all distributions): build.sh
 
 After building, the relevent binaries can be found in 
-the bin/ directory.
+the /bin// directory. 
 
 **** Dependencies
 
@@ -52,7 +52,7 @@ supports 64-bit desktop platforms.
 
 ** Example 
 
-#+BEGIN_SRC ether
+#+BEGIN_SRC c
 [deploy stdio]
 [deploy "renderer.eth"]
 
@@ -78,6 +78,7 @@ supports 64-bit desktop platforms.
 ** License
 
 This project is licensed under the terms of the MIT license.
+See LICENSE file for details.
 
 ** Contribution
 
