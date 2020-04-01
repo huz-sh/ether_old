@@ -1,15 +1,15 @@
 * Ether
 
-Ether is a low-level, systems programming language 
-inspired by functional-paradigm programming languages such
-as LISP, Haskell, and others. It comprises of various 
-bloat-free features inherited by the FP paradigm to 
-ease the development of embedded and efficient software
-without the implications of a slow runtime. Ether was 
-built to fulfill one goal: improve the already-perfected language 
-C. By combining procedural and functional, Ether
-is able to improve where C lacks. One example is 
-atomic expressions. 
+/Ether/ is a low-level, general purpose systems
+programming language that aims to improve on C.
+C is already a nearly-perfect language designed to 
+be suitable for any purpose, but its power comes for
+a price. /Ether/ improves on C's semantics by enhancing 
+the runtime, testing and building support. 
+
+/Ether/ also incorporates features of paradigms other 
+than procedural without the implications of a slow runtime.
+For other /Ether/ features, see the documentation.
 
 ** Features (bloat-free)
 
@@ -20,39 +20,60 @@ ease of use. Features like 'compile-time code execution' and
 develop high-quality and effient code.
 
 + compile-time code execution
-+ static type system
++ stong static type system
++ built-in build-system
++ runtime type information
++ built-in testing support
 + ether-static interpreter
-+ built-in build-system 
 + runtime checks in debug-mode
   + stack array bounds
 + concurrent and safe code execution
-+ minimal standard library
++ essential standard library toolset
 
 ** Installation
-
-Ether provides platform-specific scripts to automatically
-build the entire platform. See Dependencies section for details.
-
-+ *Windows*: build.bat
-+ *MacOS*: build.sh
-+ *Linux* (all distributions): build.sh
-
-After building, the relevent binaries can be found in 
-the /bin// directory. 
 
 **** Dependencies
 
 + gcc (or any other standard-compliant C compiler)
 
+/Ether/ provides platform-specific scripts to automatically
+build the entire Ether platform. See Dependencies section for details.
+
+**** Windows
+
+#+BEGIN_SRC sh
+.\build.bat
+#+END_SRC
+
+**** MacOS / Linux
+
+#+BEGIN_SRC 
+./build.sh
+#+END_SRC
+
+After building, the relevent binaries can be found in 
+the /bin// directory. 
+
 *** Platform Support
 
-Because of the way Ether compiles native programs without
+Because of the way /Ether/ compiles native programs without
 using a back-end like LLVM or Clang, it (for now) only 
 supports 64-bit desktop platforms. 
 
 ** Example 
 
-#+BEGIN_SRC c
+*** Hello World
+
+#+BEGIN_SRC c++
+[deploy stdio]
+
+[int: main [void]
+    [std::putsl "Hello, world!"]]
+#+END_SRC
+
+*** Semantic features (brief)
+
+#+BEGIN_SRC c++
 [deploy stdio]
 [deploy "renderer.eth"]
 
@@ -67,7 +88,7 @@ supports 64-bit desktop platforms.
 	[void: entity_render [entity*:e]
 	    [renderer::submit e.mesh_comp]]]
 
-[uint: main [int:argc char**:argv]
+[int: main [int:argc char**:argv]
     [entity*:e]
 	[comptime
 		[assert [== [sizeof entity*] 8]]]	# only 64-bit
