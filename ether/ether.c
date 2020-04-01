@@ -1,3 +1,5 @@
+#include <assert.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -5,6 +7,8 @@
 
 #include <ether/typedefs.h>
 
+#include "ether_math.c"
+#include "ether_buf.c"
 #include "ether_io.c"
 #include "ether_error.c"
 #include "ether_lexer.c"
@@ -24,4 +28,7 @@ int main (int argc, char** argv) {
 	lexer l = { };
 	lexer_init(&l, srcfile);
 	lexer_run(&l);
+	for (uint i = 0; i < buf_len(l.tokens); ++i) {
+		printf("token: %c\n", (token_type)l.tokens[i].type);
+	}
 }
