@@ -1,33 +1,27 @@
 #include <stdio.h>
+#include <stdint.h>
+#include <stdlib.h>
 #include <stdarg.h>
 
-#define ether_error(x, ...) _ether_error(__FILE__, __LINE__, \
-										 x, ##__VA_ARGS__)
+#include <ether/typedefs.h>
 
-static
-void _ether_error(const char* file, int line, const char* fmt, ...) {
-	printf("ether: ");
+#include "ether_io.c"
+#include "ether_error.c"
+#include "ether_lexer.c"
 
-#ifdef _DEBUG
-	printf("(%s:%d) ", file, line);
-#endif
-
-	va_list ap;
-	va_start(ap, fmt);
-	vprintf(fmt, ap);
-	va_end(ap);
-	printf("\n");
-}
-
-typedef struct {
-	
-} lexer;
-
-int main(int argc, char** argv) {
+int main (int argc, char** argv) {
 	if (argc < 2) {
-		ether_error("no input files supplied.");			
+		ether_error("no input files supplied");			
+	}
+
+	/* TODO: check if we have to free this pointer.
+	 * is it expensive to keep it around? */
+	file srcfile = read_file(argv[1]);
+	if (!srcfile.contents) {
+		ether_error("%s: no such file or directory", argv[1]);
 	}
 	
-	//lexer l = { };
-	//lexer_init(&l);
+	lexer l = { };
+	lexer_init(&l, srcfile);
+	lexer_run(&l);
 }
