@@ -60,9 +60,9 @@ namespace ether {
 			mem[len++] = elem;
 		}
 
-		void free(void) {
+		void destroy(void) {
 			if (mem) {
-				free(mem);
+				free((void*)mem);
 			}
 		
 			this->len = 0;

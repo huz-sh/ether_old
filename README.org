@@ -2,7 +2,7 @@
 
 /Ether/ is a low-level, general purpose systems
 programming language that aims to improve on C & C++.
-C (with classes) is already a nearly-perfect language designed to 
+C (with classes) is already a (nearly) perfect language designed to 
 be suitable for any purpose, but its power comes for
 a price. /Ether/ improves on C's semantics by enhancing 
 the runtime, testing and building support. 

@@ -28,6 +28,6 @@ int main (int argc, char** argv) {
 	ether::lexer l(srcfile);
 	l.run();
 	for (uint i = 0; i < l.tokens.len; ++i) {
-		printf("token: %c\n", l.tokens[i].type);
+		printf("token: %c at line %d, col %d\n", l.tokens[i].type, l.tokens[i].line, l.tokens[i].col);
 	}
 }
