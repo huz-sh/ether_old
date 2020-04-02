@@ -1,5 +1,4 @@
-#ifndef __ETHER_TYPEDEFS_H
-#define __ETHER_TYPEDEFS_H
+#pragma once
 
 typedef unsigned int uint;
 typedef uint8_t uint8;
@@ -13,5 +12,3 @@ typedef int32_t int32;
 typedef int64_t int64;
 
 typedef unsigned char uchar;
-
-#endif
