@@ -124,6 +124,20 @@ void ether::lexer::number(void) {
 	while (isdigit(*cur)) {
 		++cur;
 	}
+	if (*cur == '.') {
+		++cur;
+		
+		int after_dot = 0;
+		while (isdigit(*cur)) {
+			++cur;
+			after_dot = 1;
+		}
+
+		if (!after_dot) {
+			error("expected digit after '.' in floating-point number");
+		}
+	}
+
 	--cur;
 	addt(TOKEN_NUMBER);
 }
