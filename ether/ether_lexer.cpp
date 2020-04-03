@@ -10,6 +10,8 @@ namespace ether {
 		TOKEN_COLON = ':',
 		
 		TOKEN_IDENTIFIER = 1,
+		TOKEN_NUMBER,
+		TOKEN_STRING,
 		TOKEN_SCOPE,
 	};
 
@@ -28,6 +30,8 @@ namespace ether {
 
 	private:
 		void identifier(void);
+		void number(void);
+		void string(void);
 		void comment(void);
 
 		void addt(token_type t);
@@ -38,6 +42,7 @@ namespace ether {
 		
 		char* start, *cur;
 		uint line;
+		
 		uint error_count;
 		int error_occured;
 	};
@@ -60,6 +65,8 @@ int ether::lexer::run(void) {
 			case '[':
 			case ']': addt((ether::token_type)(*cur)); break;
 
+			case '"': string(); break;
+				
 			case '\t':
 			case '\r':
 			case ' ': ++cur; break;
@@ -82,6 +89,9 @@ int ether::lexer::run(void) {
 			default: {
 				if (isalpha(*cur) || (*cur) == '_') {
 					identifier();
+				}
+				else if (isdigit(*cur)) {
+					number();
 				}
 				else {
 					error("invalid char literal '%c' in source code", *cur);
@@ -108,6 +118,22 @@ void ether::lexer::identifier(void) {
 	}
 	--cur;
 	addt(TOKEN_IDENTIFIER);
+}
+
+void ether::lexer::number(void) {
+	while (isdigit(*cur)) {
+		++cur;
+	}
+	--cur;
+	addt(TOKEN_NUMBER);
+}
+
+void ether::lexer::string(void) {
+	++cur;
+	while ((*cur) != '"') {
+		++cur;
+	}
+	addt(TOKEN_STRING);
 }
 
 void ether::lexer::comment(void) {
