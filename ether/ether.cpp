@@ -4,11 +4,14 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstdarg>
+#include <cstring>
+#include <ctype.h>
 
 #include <ether/typedefs.h>
 
 #include "ether_math.cpp"
 #include "ether_buf.cpp"
+#include "ether_str_intern.cpp"
 #include "ether_io.cpp"
 #include "ether_error.cpp"
 #include "ether_lexer.cpp"
@@ -26,8 +29,11 @@ int main (int argc, char** argv) {
 	}
 	
 	ether::lexer l(srcfile);
-	l.run();
+	int err = l.run();
+	if (err == LEXER_ERROR) ether::error("compilation aborted");
+	
 	for (uint i = 0; i < l.tokens.len; ++i) {
-		printf("token: %c at line %d, col %d\n", l.tokens[i].type, l.tokens[i].line, l.tokens[i].col);
+		printf("token: '%s' at line %d\n",
+			   (l.tokens[i].lexeme), l.tokens[i].line);
 	}
 }

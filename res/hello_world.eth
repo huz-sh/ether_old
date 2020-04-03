@@ -1,6 +1,15 @@
-# note that Ether's semantics are not finalized, and can be 
-# changed during development. so do not adhere to this syntax.
-[deploy io]
+;; note that Ether's semantics are not finalized, and can be 
+;; changed during development. so do not adhere to this syntax.
+[deploy io] ;; includes   
+
+[namespace ether
+	[namespace io
+		[void log_error [string s]
+			[std::io::printfl "error: %" s]
+			[std::sys::exit 1]]
+		
+		[void log_warning [string s]
+			[std::io::printfl "warning: %" s]]]]
 
 [int: main [void]
-	[std::io::putsl "Hello, world!"]]
+	[ether::io::log_error "Hello, world!"]]

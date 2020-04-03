@@ -2,6 +2,7 @@
 
 namespace ether { namespace io {
 	struct file {
+		char* fpath;
 		char* contents;
 		uint len;
 	};
@@ -18,6 +19,6 @@ namespace ether { namespace io {
 		fread((void*)contents, sizeof(char), size, fp);
 		fclose(fp);
 	
-		return (file){ contents, size };
+		return (file){ fpath, contents, size };
 	}
 } }

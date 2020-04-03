@@ -1,15 +1,22 @@
 #pragma once
 
+#define LEXER_ERROR 1
+#define LEXER_ERROR_COUNT_MAX 4
+
 namespace ether {
 	enum token_type {
 		TOKEN_L_BKT = '[', 
 		TOKEN_R_BKT = ']',
+		TOKEN_COLON = ':',
+		
+		TOKEN_IDENTIFIER = 1,
+		TOKEN_SCOPE,
 	};
 
 	struct token {
 		token_type type;
+		char* lexeme;
 		uint line;
-		uint col;
 	};
 
 	struct lexer {
@@ -17,42 +24,125 @@ namespace ether {
 		arr<token> tokens;
 
 		lexer (io::file srcfile);
-		void run(void);
+		int run(void);
+
+	private:
+		void identifier(void);
+		void comment(void);
+
+		void addt(token_type t);
+
+		int match(char c);
+		int at_end(void);
+		void error(const char* msg, ...);
+		
+		char* start, *cur;
+		uint line;
+		uint error_count;
+		int error_occured;
 	};
 }
 
 ether::lexer::lexer (io::file srcfile) {
 	this->srcfile = srcfile;
+	this->error_occured = 0;
+	this->start = srcfile.contents;
+	this->cur = srcfile.contents;
+	this->error_count = 0;
 }
 
-void ether::lexer::run(void) {
-	uint line = 1;
-	uint col = 1;
-	for (uint i = 0; i < this->srcfile.len; ++i, ++col) {
-		char c = this->srcfile.contents[i];
-		switch (c) {
+int ether::lexer::run(void) {
+	line = 1;
+	for (cur = this->srcfile.contents; cur != (this->srcfile.contents + this->srcfile.len);) {
+		start = cur;
+		switch (*cur) {
+			case ':': (match(':') ? addt(TOKEN_SCOPE) : addt(TOKEN_COLON)); break;
 			case '[':
-			case ']': {
-				tokens.push((token){ (token_type)c, line, col });
-			} break;
+			case ']': addt((ether::token_type)(*cur)); break;
 
-			case '\t': {
-				col += 3;	/* col goes to 4 in the next iteration */
-			} break;
-
+			case '\t':
+			case '\r':
+			case ' ': ++cur; break;
+				
 			case '\n': {
 				++line;
-				col = 0;	/* col increments to 1 in the next iteration */
-			} break;
-								
-			case '#': {
-				while (this->srcfile.contents[i] != '\n') {
-					++i; ++col;
-				}
-				--i; --col;
+				++cur;
 			} break;
 
-			default: break;
+			case ';': {
+				if (match(';')) {
+					comment();
+				}
+				else {
+					error("invalid semicolon here; did you mean ';;'?");
+					++cur;
+				}
+			} break;
+				
+			default: {
+				if (isalpha(*cur) || (*cur) == '_') {
+					identifier();
+				}
+				else {
+					error("invalid char literal '%c' in source code", *cur);
+					++cur;
+				}
+			} break;
+		}
+
+		if (error_count > LEXER_ERROR_COUNT_MAX) {
+			/* TODO: refactor note in function */
+			printf("note: error count (%d) exceeded limit; aborting...\n", 
+				   error_count);
+			return this->error_occured;
 		}
 	}
+	
+	return this->error_occured;
+}
+
+void ether::lexer::identifier(void) {
+	++cur;
+	while (isalnum(*cur) || *cur == '_') {
+		++cur;
+	}
+	--cur;
+	addt(TOKEN_IDENTIFIER);
+}
+
+void ether::lexer::comment(void) {
+	while (*cur != '\n') {
+		++cur;
+	}
+}
+
+void ether::lexer::addt(ether::token_type t) {
+	tokens.push((token){t, strni(start, ++cur), line });	
+}
+
+int ether::lexer::match(char c) {
+	if (!at_end()) {
+		if (*(cur+1) == c) {
+			++cur;
+			return 1;
+		}
+	}
+	return 0;
+}
+
+int ether::lexer::at_end(void) {
+	if (cur >= (this->srcfile.contents + this->srcfile.len)) {
+		return 1;
+	}
+	return 0;
+}
+
+void ether::lexer::error(const char* msg, ...) {
+	va_list ap;
+	va_start(ap, msg);
+	printf("%s:%d: error: ", this->srcfile.fpath, line);
+	vprintf(msg, ap);
+	printf("\n");
+	this->error_occured = LEXER_ERROR;
+	++error_count;
 }
