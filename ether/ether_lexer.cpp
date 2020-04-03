@@ -129,11 +129,14 @@ void ether::lexer::number(void) {
 }
 
 void ether::lexer::string(void) {
+	++start;
 	++cur;
 	while ((*cur) != '"') {
 		++cur;
 	}
+	--cur;
 	addt(TOKEN_STRING);
+	++cur;
 }
 
 void ether::lexer::comment(void) {
