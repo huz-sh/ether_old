@@ -1,6 +1,10 @@
 #ifndef __TYPEDEFS_H
 #define __TYPEDEFS_H
 
+#define true 1
+#define false 0
+#define null NULL
+
 typedef unsigned int uint;
 typedef uint8_t uint8;
 typedef uint16_t uint16;

@@ -1,20 +1,4 @@
-#include <assert.h>
-#include <stddef.h>
-#include <stdio.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <stdarg.h>
-#include <string.h>
-#include <ctype.h>
-
-#include <ether/typedefs.h>
-
-#include "ether_math.c"
-#include "ether_buf.c"
-#include "ether_str_intern.c"
-#include "ether_io.c"
-#include "ether_error.c"
-#include "ether_lexer.c"
+#include <ether/ether.h>
 
 int main (int argc, char** argv) {
 	if (argc < 2) {
@@ -29,12 +13,15 @@ int main (int argc, char** argv) {
 	}
 	
 	lexer_init(srcfile);
-	int err = 0;
-	token* tokens = lexer_run(&err);
+	int err = false;
+	token** tokens = lexer_run(&err);
 	if (err == LEXER_ERROR) ether_error("compilation aborted.");
 	
 	for (uint i = 0; i < buf_len(tokens); ++i) {
-		printf("token: '%s' at line %d\n",
-			   (tokens[i].lexeme), tokens[i].line);
+		printf("token: '%s' at line %ld\n",
+			   (tokens[i]->lexeme), tokens[i]->line);
 	}
+
+	parser_init(srcfile, tokens);
+	expr* e = parser_run(&err);
 }

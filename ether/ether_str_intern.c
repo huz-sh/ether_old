@@ -1,10 +1,7 @@
 #ifndef __STR_INTERN_C
 #define __STR_INTERN_C
 
-typedef struct {
-	size_t len;
-	char* str;
-} intern;
+#include <ether/ether.h>
 
 static intern* interns;
 
@@ -12,7 +9,7 @@ char* strni(char* start, char* end) {
 	size_t len = end - start;
 	for (size_t i = 0; i < buf_len(interns); ++i) {
 		if (interns[i].len == len &&
-			strncmp(interns[i].str, start, len) == 0) {
+			strncmp(interns[i].str, start, len) == false) {
 			return interns[i].str;
 		}
 	}

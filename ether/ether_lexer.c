@@ -1,65 +1,49 @@
 #ifndef __LEXER_C
 #define __LEXER_C
 
-#define LEXER_ERROR 1
-#define LEXER_ERROR_COUNT_MAX 10
-
-/**** LEXER TYPES ****/
-typedef enum {
-	TOKEN_L_BKT = '[', 
-	TOKEN_R_BKT = ']',
-	TOKEN_COLON = ':',
-		
-	TOKEN_IDENTIFIER = 1,
-	TOKEN_NUMBER,
-	TOKEN_STRING,
-	TOKEN_SCOPE,
-} token_type;
-
-typedef struct {
-	token_type type;
-	char* lexeme;
-	uint line;
-} token;
+#include <ether/ether.h>
 
 /**** LEXER STATE VARIABLES ****/
 static file srcfile;
-static token* tokens;
+static token** tokens;
 
 static char* start, *cur;
-static uint line;
+static uint64 line;
 
 static uint error_count;
 static int error_occured;
 
 /**** LEXER FUNCTIONS ****/
-void lexer_init(file srcfile);
-int run(void);
-
 static void identifier(void);
 static void number(void);
 static void string(void);
 static void comment(void);
 
-static void addt(token_type t);
-static int match(char c);
+static void addt(token_type);
+static int match(char);
 static int at_end(void);
-static void error(const char* msg, ...);
+static void error(const char*, ...);
 
 void lexer_init(file src) {
 	srcfile = src;
+	tokens = null;
 	start = srcfile.contents;
 	cur = srcfile.contents;
 	line = 1;
-	error_count = 0;
-	error_occured = 0;
+	error_count = false;
+	error_occured = false;
 }
 
-token* lexer_run(int* err) {
+token** lexer_run(int* err) {
 	for (cur = srcfile.contents; cur != (srcfile.contents + srcfile.len);) {
 		start = cur;
 		switch (*cur) {
 			case ':': (match(':') ? addt(TOKEN_SCOPE) : addt(TOKEN_COLON)); break;
+
+			case '+':
+			case '-':
+			case '*':
+			case '/':	
 			case '[':
 			case ']': addt((token_type)(*cur)); break;
 
@@ -128,10 +112,10 @@ static void number(void) {
 	if (*cur == '.') {
 		++cur;
 		
-		int after_dot = 0;
+		int after_dot = false;
 		while (isdigit(*cur)) {
 			++cur;
-			after_dot = 1;
+			after_dot = true;
 		}
 
 		if (!after_dot) {
@@ -161,30 +145,34 @@ static void comment(void) {
 }
 
 static void addt(token_type t) {
-	buf_push(tokens, (token){t, strni(start, ++cur), line });	
+	token* new = (token*)malloc(sizeof(token));
+	new->type = t;
+	new->lexeme = strni(start, ++cur);
+	new->line = line;
+	buf_push(tokens, new);	
 }
 
 static int match(char c) {
 	if (!at_end()) {
 		if (*(cur+1) == c) {
 			++cur;
-			return 1;
+			return true;
 		}
 	}
-	return 0;
+	return false;
 }
 
 static int at_end(void) {
 	if (cur >= (srcfile.contents + srcfile.len)) {
-		return 1;
+		return true;
 	}
-	return 0;
+	return false;
 }
 
 static void error(const char* msg, ...) {
 	va_list ap;
 	va_start(ap, msg);
-	printf("%s:%d: error: ", srcfile.fpath, line);
+	printf("%s:%ld: error: ", srcfile.fpath, line);
 	vprintf(msg, ap);
 	printf("\n");
 	error_occured = LEXER_ERROR;

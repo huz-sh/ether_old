@@ -1,13 +1,9 @@
 #ifndef __IO_C
 #define __IO_C
 
-typedef struct {
-	char* fpath;
-	char* contents;
-	uint len;
-} file;
-	
-file ether_read_file (char* fpath) {
+#include <ether/ether.h>
+
+file ether_read_file(char* fpath) {
 	/* TODO: more thorough error checking */
 	FILE* fp = fopen(fpath, "r");
 	if (!fp) return (file){ };
