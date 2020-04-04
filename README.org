@@ -1,8 +1,8 @@
 * Ether
 
 /Ether/ is a low-level, general purpose systems
-programming language that aims to improve on C & C++.
-C (with classes) is already a (nearly) perfect language designed to 
+programming language that aims to improve on C.
+C is already a (nearly) perfect language designed to 
 be suitable for any purpose, but its power comes for
 a price. /Ether/ improves on C's semantics by enhancing 
 the runtime, testing and building support. 
@@ -34,10 +34,7 @@ develop high-quality and effient code.
 
 **** Dependencies
 
-+ g++ (or any other standard-compliant C++ compiler)
-
-Even though /Ether's/ source code is using C++ as a language of choice,
-it only uses classes (and some template code) to function.
++ gcc (or any other standard-compliant C++ compiler)
 
 /Ether/ provides platform-specific scripts to automatically
 build the entire Ether platform. See Dependencies section for details.

@@ -6,7 +6,7 @@
 	[namespace io
 		[void log_error [string s]
 			[std::io::printfl "error: %" s]
-			[std::sys::exit .1]]
+			[std::sys::exit 1.0]]
 		
 		[void log_warning [string s]
 			[std::io::printfl "warning: %" s]]]]
