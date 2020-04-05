@@ -41,7 +41,9 @@ int print_file_line(file f, uint64 l) {
 
 	while (*line_to_print != '\n') {
 		if (*line_to_print == '\0') break;
-		printf("%c", *line_to_print);
+		
+		if (*line_to_print == '\t') printf("    ");
+		else printf("%c", *line_to_print);
 		++line_to_print;
 	}
 	printf("\n");

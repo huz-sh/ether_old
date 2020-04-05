@@ -1,7 +1,10 @@
 ;; this is an expression test file.
 ;; this is not the final version of the
 ;; semantics, so do not adhere to this.
+;; this file also tests lexer error output
+;; behaviour and formatting. 
 
 [2 *
-	[4 / 2
-	] . + [2 + 2]]
+	 [4
+	/ 2] . + [2
+	+ 2]]
