@@ -1,6 +1,3 @@
-#ifndef __LEXER_C
-#define __LEXER_C
-
 #include <ether/ether.h>
 
 /**** LEXER STATE VARIABLES ****/
@@ -178,5 +175,3 @@ static void error(const char* msg, ...) {
 	error_occured = LEXER_ERROR;
 	++error_count;
 }
-
-#endif

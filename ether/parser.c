@@ -1,6 +1,3 @@
-#ifndef __PARSER_C
-#define __PARSER_C
-
 #include <ether/ether.h>
 
 /**** PARSER STATE VARIABLES ****/
@@ -159,5 +156,3 @@ static void errorc(const char* msg, ...) {
 	/* TODO: synchonization here */
 	goto_next_tok(); /* TODO: remove this */
 }
-
-#endif

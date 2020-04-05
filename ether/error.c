@@ -1,6 +1,3 @@
-#ifndef __ERROR_C
-#define __ERROR_C
-
 #include <ether/ether.h>
 
 void ether_error(const char* fmt, ...) {
@@ -14,5 +11,3 @@ void ether_error(const char* fmt, ...) {
 
 	exit(EXIT_FAILURE);
 }
-
-#endif 

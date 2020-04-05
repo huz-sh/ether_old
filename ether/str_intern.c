@@ -1,6 +1,3 @@
-#ifndef __STR_INTERN_C
-#define __STR_INTERN_C
-
 #include <ether/ether.h>
 
 static intern* interns;
@@ -24,5 +21,3 @@ char* strni(char* start, char* end) {
 char* stri(char* str) {
 	return strni(str, str + strlen(str));
 }
-
-#endif

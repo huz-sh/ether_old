@@ -1,6 +1,3 @@
-#ifndef __IO_C
-#define __IO_C
-
 #include <ether/ether.h>
 
 file ether_read_file(char* fpath) {
@@ -17,6 +14,3 @@ file ether_read_file(char* fpath) {
 	
 	return (file){ fpath, contents, size };
 }
-
-
-#endif
