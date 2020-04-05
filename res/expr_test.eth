@@ -4,7 +4,4 @@
 ;; this file also tests lexer error output
 ;; behaviour and formatting. 
 
-[2 *
-	 [4
-	/ 2] . + [2
-	+ 2]]
+[2 * [4 / 2] / + [2 + 2]]

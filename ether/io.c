@@ -50,10 +50,15 @@ int print_file_line(file f, uint64 l) {
 	return ETHER_SUCCESS;
 }
 
-int print_marker_arrow_ln(file srcfile, uint64 line, uint32 col) {
-	char* whitespace_start = get_line_at(srcfile, line);
+int print_file_line_with_info(file f, uint64 l) {
+	printf("%6ld | ", l);
+	return print_file_line(f, l);
+}
+
+int print_marker_arrow_ln(file f, uint64 l, uint32 c) {
+	char* whitespace_start = get_line_at(f, l);
 	assert(whitespace_start);
-	const char* marker = whitespace_start + col - 1;
+	const char* marker = whitespace_start + c - 1;
 
 	while (whitespace_start != marker) {
 		if (*whitespace_start == '\0') return ETHER_ERROR;
@@ -63,4 +68,9 @@ int print_marker_arrow_ln(file srcfile, uint64 line, uint32 col) {
 	}
 	printf("^\n");
 	return ETHER_SUCCESS;
+}
+
+int print_marker_arrow_with_info_ln(file f, uint64 l, uint32 c) {
+	printf("%6s | ", "");
+	return print_marker_arrow_ln(f, l, c);
 }

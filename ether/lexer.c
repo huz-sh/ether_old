@@ -185,11 +185,10 @@ static void error(const char* msg, ...) {
 	printf("%s:%ld:%d: error: ", srcfile.fpath, line, column);
 	vprintf(msg, ap);
 	printf("\n");
+	va_end(ap);
 
-	printf("%6ld | ", line);
-	print_file_line(srcfile, line);
-	printf("%6s | ", "");
-	print_marker_arrow_ln(srcfile, line, column);
+	print_file_line_with_info(srcfile, line);
+	print_marker_arrow_with_info_ln(srcfile, line, column);
 	
 	error_occured = ETHER_ERROR;
 	++error_count;

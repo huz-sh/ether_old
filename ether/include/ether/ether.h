@@ -63,8 +63,12 @@ typedef struct {
 
 file ether_read_file(char* fpath);
 char* get_line_at(file f, uint64 l);
+
 int print_file_line(file f, uint64 l);
-int print_marker_arrow_ln(file srcfile, uint64 line, uint32 col);
+int print_file_line_with_info(file f, uint64 l);
+
+int print_marker_arrow_ln(file f, uint64 l, uint32 c);
+int print_marker_arrow_with_info_ln(file f, uint64 l, uint32 c);
 
 void ether_error(const char* fmt, ...);
 

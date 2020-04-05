@@ -6,6 +6,7 @@ static token** tokens;
 static uint64 tokens_len;
 
 static uint64 idx;
+static uint error_count;
 
 /**** PARSER FUNCTIONS ****/
 static expr* _expr(void);
@@ -31,10 +32,13 @@ void parser_init(file src, token** t) {
 	tokens = t;
 	tokens_len = buf_len(t);
 	idx = 0UL;
+	error_count = 0;
 }
 
 expr* parser_run(int* err) {
-	return _expr();	
+	expr* e = _expr();
+	if (err) *err = ETHER_ERROR;
+	return e;
 }
 
 static expr* _expr(void) {
@@ -148,11 +152,15 @@ static token* prev(void) {
 static void errorc(const char* msg, ...) {
 	va_list ap;
 	va_start(ap, msg);
-	printf("%s:%ld: error: ", srcfile.fpath, cur()->line);
+	printf("%s:%ld:%d: error: ", srcfile.fpath, cur()->line, cur()->col);
 	vprintf(msg, ap);
-	printf("\n");
 	va_end(ap);
+	printf("\n");
 
+	print_file_line_with_info(srcfile, cur()->line);
+	print_marker_arrow_with_info_ln(srcfile, cur()->line, cur()->col);
+	
 	/* TODO: synchonization here */
 	goto_next_tok(); /* TODO: remove this */
+	++error_count;
 }
