@@ -172,6 +172,6 @@ static void error(const char* msg, ...) {
 	printf("%s:%ld: error: ", srcfile.fpath, line);
 	vprintf(msg, ap);
 	printf("\n");
-	error_occured = LEXER_ERROR;
+	error_occured = ETHER_ERROR;
 	++error_count;
 }

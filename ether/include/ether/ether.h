@@ -125,6 +125,12 @@ struct expr {
 void parser_init(file, token**);
 expr* parser_run(int*);
 
-void print_ast(expr*);
+#ifdef _DEBUG
+#define print_ast(e) _print_ast(e)
+#else
+#define print_ast(e)
+#endif
+
+void _print_ast(expr*);
 
 #endif

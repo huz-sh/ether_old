@@ -4,7 +4,7 @@ static void ast(expr* e);
 static void binary(expr* e);
 static void number(expr* e);
 
-void print_ast(expr* e) {
+void _print_ast(expr* e) {
 	ast(e);
 	printf("\n");
 

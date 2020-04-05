@@ -8,14 +8,14 @@ DEP_FILES := $(wildcard $(DEP_DIR)/*.c)
 OBJ_FILES := $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(SRC_FILES))
 OBJ_FILES += $(patsubst $(DEP_DIR)/%.c,$(OBJ_DIR)/%.o,$(DEP_FILES))
 LDFLAGS :=
-CFLAGS := -Wall -Wextra -Wshadow -std=c99 -m64 -g -O0 -Iether/include
+CFLAGS := -D_DEBUG -Wall -Wextra -Wshadow -std=c99 -m64 -g -O0 -Iether/include
 
 ifeq ($(OS), Windows_NT)
 	PROJECT := $(PROJECT).exe
 endif
 
 run: $(BIN_DIR)/$(PROJECT)
-	@$^ res/expr_test.eth
+	@$(BIN_DIR)/$(PROJECT) res/expr_test.eth
 
 $(BIN_DIR)/$(PROJECT): $(OBJ_FILES)
 	@mkdir -p $(dir $@)
@@ -31,9 +31,9 @@ $(OBJ_DIR)/%.o: $(DEP_DIR)/%.c
 
 clean:
 ifeq ($(OS), Windows_NT)
-	del $(BIN_DIR)\$(PROJECT)
-	del $(OBJ_FILES)
+	@del $(BIN_DIR)\$(PROJECT)
+	@del $(OBJ_FILES)
 else
-	rm -f $(BIN_DIR)/$(PROJECT)
-	rm -f $(OBJ_FILES)
+	@rm -f $(BIN_DIR)/$(PROJECT)
+	@rm -f $(OBJ_FILES)
 endif
