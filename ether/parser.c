@@ -28,6 +28,8 @@ static token* cur(void);
 static token* prev(void);
 
 static void errorc(const char*, ...);
+static void errorp(const char*, ...);
+static void error(token*, const char*, ...);
 
 void parser_init(file src, token** t) {
 	srcfile = src;
@@ -48,6 +50,11 @@ static expr* _expr(void) {
 	expect(TOKEN_L_BKT, "expected '[' at start of expr");
 	expr* e = expr_assign();
 	expect(TOKEN_R_BKT, "expected ']' at end of expr");
+	if (cur()) {
+		if (cur()->type > TOKEN_EXPRS_START && cur()->type < TOKEN_EXPRS_END) {
+			errorp("expression ended here; expected statement (did you forget a '['?)");
+		}
+	}
 	return e;
 }
 
@@ -165,13 +172,27 @@ static token* prev(void) {
 static void errorc(const char* msg, ...) {
 	va_list ap;
 	va_start(ap, msg);
-	printf("%s:%ld:%d: error: ", srcfile.fpath, cur()->line, cur()->col);
+	error(cur(), msg, ap);
+	va_end(ap);	
+}
+
+static void errorp(const char* msg, ...) {
+	va_list ap;
+	va_start(ap, msg);
+	error(prev(), msg, ap);
+	va_end(ap);
+}
+
+static void error(token* t, const char* msg, ...) {
+	va_list ap;
+	va_start(ap, msg);
+	printf("%s:%ld:%d: error: ", srcfile.fpath, t->line, t->col);
 	vprintf(msg, ap);
 	va_end(ap);
 	printf("\n");
 
-	print_file_line_with_info(srcfile, cur()->line);
-	print_marker_arrow_with_info_ln(srcfile, cur()->line, cur()->col);
+	print_file_line_with_info(srcfile, t->line);
+	print_marker_arrow_with_info_ln(srcfile, t->line, t->col);
 	
 	/* TODO: synchonization here */
 	goto_next_tok(); /* TODO: remove this */

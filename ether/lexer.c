@@ -41,12 +41,12 @@ token** lexer_run(int* err) {
 		switch (*cur) {
 			case ':': (match(':') ? addt(TOKEN_SCOPE) : addt(TOKEN_COLON)); break;
 
-			case '+':
-			case '-':
-			case '*':
-			case '/':	
-			case '[':
-			case ']': addt((token_type)(*cur)); break;
+			case '+': addt(TOKEN_PLUS);  break;
+			case '-': addt(TOKEN_MINUS); break;
+			case '*': addt(TOKEN_STAR);  break;
+			case '/': addt(TOKEN_SLASH); break;	
+			case '[': addt(TOKEN_L_BKT); break;
+			case ']': addt(TOKEN_R_BKT); break;
 
 			case '"': string(); break;
 				

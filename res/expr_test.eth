@@ -4,4 +4,4 @@
 ;; this file also tests lexer error output
 ;; behaviour and formatting. 
 
-[2 * [this_is_a_long_variable / 2] / [[r34tff3_4_4 * 100000] + THIS_IS_ALL_CAPS] / [x_1 + 2]]
+[2 * [this_is_a_long_variable / 2] / [[r34tff3_4_4 * 100000] + THIS_IS_ALL_CAPS] / [x_1 + 2]]+

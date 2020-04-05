@@ -86,17 +86,22 @@ char* stri(char* str);
 #define LEXER_ERROR_COUNT_MAX 10
 
 typedef enum {
-	TOKEN_L_BKT = '[', 
-	TOKEN_R_BKT = ']',
-	TOKEN_COLON = ':',
-	TOKEN_PLUS = '+',
-	TOKEN_MINUS = '-',
-	TOKEN_STAR = '*',
-	TOKEN_SLASH = '/',
-		
-	TOKEN_IDENTIFIER = 1,
+	TOKEN_EXPRS_START,
+	
+	TOKEN_L_BKT, 
+	TOKEN_R_BKT,
+	TOKEN_COLON,
+	TOKEN_PLUS,
+	TOKEN_MINUS,
+	TOKEN_STAR,
+	TOKEN_SLASH,
+	
+	TOKEN_IDENTIFIER,
 	TOKEN_NUMBER,
 	TOKEN_STRING,
+	
+	TOKEN_EXPRS_END,
+	
 	TOKEN_SCOPE,
 } token_type;
 
