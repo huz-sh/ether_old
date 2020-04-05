@@ -50,11 +50,6 @@ static expr* _expr(void) {
 	expect(TOKEN_L_BKT, "expected '[' at start of expr");
 	expr* e = expr_assign();
 	expect(TOKEN_R_BKT, "expected ']' at end of expr");
-	if (cur()) {
-		if (cur()->type > TOKEN_EXPRS_START && cur()->type < TOKEN_EXPRS_END) {
-			errorp("expression ended here; expected statement (did you forget a '['?)");
-		}
-	}
 	return e;
 }
 
