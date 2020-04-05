@@ -1,0 +1,5 @@
+;; this is an stmt test file.
+;; please do not adhere to this,
+;; as it may change during development.
+
+[int: h = [1 + 2]]

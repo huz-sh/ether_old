@@ -15,7 +15,7 @@ ifeq ($(OS), Windows_NT)
 endif
 
 run: $(BIN_DIR)/$(PROJECT)
-	@$(BIN_DIR)/$(PROJECT) res/expr_test.eth
+	@$(BIN_DIR)/$(PROJECT) res/stmt_test.eth
 
 $(BIN_DIR)/$(PROJECT): $(OBJ_FILES)
 	@mkdir -p $(dir $@)

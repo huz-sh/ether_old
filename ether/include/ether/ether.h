@@ -86,8 +86,6 @@ char* stri(char* str);
 #define LEXER_ERROR_COUNT_MAX 10
 
 typedef enum {
-	TOKEN_EXPRS_START,
-	
 	TOKEN_L_BKT, 
 	TOKEN_R_BKT,
 	TOKEN_COLON,
@@ -95,12 +93,11 @@ typedef enum {
 	TOKEN_MINUS,
 	TOKEN_STAR,
 	TOKEN_SLASH,
+	TOKEN_EQUAL,
 	
 	TOKEN_IDENTIFIER,
 	TOKEN_NUMBER,
 	TOKEN_STRING,
-	
-	TOKEN_EXPRS_END,
 	
 	TOKEN_SCOPE,
 } token_type;
@@ -138,8 +135,32 @@ struct expr {
 	};
 };
 
+typedef struct {
+	token* type;
+	uint8 npointer;
+} data_type;
+
+typedef struct stmt stmt;
+
+typedef enum {
+	STMT_VAR_DECL,
+} stmt_type;
+
+typedef struct {
+	data_type* type;
+	token* identifier;
+	expr* initializer;
+} stmt_var_decl;
+
+struct stmt {
+	stmt_type type;
+	union {
+		stmt_var_decl var_decl;
+	};
+};
+
 void parser_init(file, token**);
-expr* parser_run(int*);
+stmt** parser_run(int*);
 
 #ifdef _DEBUG
 #define print_ast(e) _print_ast(e)

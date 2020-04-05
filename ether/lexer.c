@@ -47,6 +47,7 @@ token** lexer_run(int* err) {
 			case '/': addt(TOKEN_SLASH); break;	
 			case '[': addt(TOKEN_L_BKT); break;
 			case ']': addt(TOKEN_R_BKT); break;
+			case '=': addt(TOKEN_EQUAL); break;
 
 			case '"': string(); break;
 				

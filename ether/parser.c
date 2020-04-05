@@ -4,12 +4,17 @@
 static file srcfile;
 static token** tokens;
 static uint64 tokens_len;
+static stmt** stmts;
 
 static uint64 idx;
 static uint error_count;
 static int error_occured;
 
 /**** PARSER FUNCTIONS ****/
+static stmt* decl(void);
+static stmt* _stmt(void);
+static stmt* var_decl(data_type*, token*);
+
 static expr* _expr(void);
 static expr* expr_assign(void);
 static expr* expr_add_sub(void);
@@ -22,6 +27,11 @@ static expr* make_variable_expr(token*);
 
 static int match(token_type);
 static void expect(token_type, const char*, ...);
+inline static void consume_lbkt(void);
+inline static void consume_rbkt(void);
+inline static void consume_colon(void);
+inline static token* consume_identifier(void);
+static data_type* consume_data_type(void);
 
 static void goto_next_tok(void);
 static token* cur(void);
@@ -40,16 +50,54 @@ void parser_init(file src, token** t) {
 	error_occured = false;
 }
 
-expr* parser_run(int* err) {
-	expr* e = _expr();
+stmt** parser_run(int* err) {
+	while (cur() != null) {
+		stmt* s = decl();
+		if (s) buf_push(stmts, s);
+	}
 	if (err) *err = error_occured;
-	return e;
+	return stmts;
+}
+
+/* only top level statements (functions, structs, var) */
+static stmt* decl(void) {
+	consume_lbkt();
+	
+	data_type* type = consume_data_type();
+	consume_colon();
+	token* identifier = consume_identifier();
+	if (!match(TOKEN_L_BKT)) {
+		/* variable declaration */
+		stmt* s = var_decl(type, identifier);
+		consume_rbkt();
+		return s;
+	}
+	return null;
+}
+
+/* only statements inside scope / function */
+static stmt* _stmt(void) {
+	
+}
+
+#define MAKE_STMT(x) stmt* x = (stmt*)malloc(sizeof(stmt));
+
+static stmt* var_decl(data_type* d, token* t) {
+	expr* init = null;
+	if (match(TOKEN_EQUAL)) {
+		init = _expr();
+	}
+	
+	MAKE_STMT(new);
+	new->type = STMT_VAR_DECL;
+	new->var_decl.type = d;
+	new->var_decl.identifier = t;
+	new->var_decl.initializer = init;
+	return new;
 }
 
 static expr* _expr(void) {
-	expect(TOKEN_L_BKT, "expected '[' at start of expr");
 	expr* e = expr_assign();
-	expect(TOKEN_R_BKT, "expected ']' at end of expr");
 	return e;
 }
 
@@ -87,7 +135,7 @@ static expr* expr_primary(void) {
 	}
 	else if (match(TOKEN_L_BKT)) {
 		expr* e = expr_assign();
-		expect(TOKEN_R_BKT, "expected ']' at end of grouping expr");
+		consume_rbkt();
 		return e;
 	}
 	else {
@@ -142,6 +190,32 @@ static void expect(token_type t, const char* msg, ...) {
 	va_start(ap, msg);
 	errorc(msg, ap);
 	va_end(ap);
+}
+
+inline static void consume_lbkt(void) {
+	expect(TOKEN_L_BKT, "expected '[' here:");
+}
+
+inline static void consume_rbkt(void) {
+	expect(TOKEN_R_BKT, "expected ']' here:");
+}
+
+inline static void consume_colon(void) {
+	expect(TOKEN_COLON, "expected ':' here:");
+}
+
+inline static token* consume_identifier(void) {
+	expect(TOKEN_IDENTIFIER, "expected identifier here:");
+	return prev();
+}
+
+static data_type* consume_data_type(void) {
+	token* type = consume_identifier();
+	/* TODO: match pointer * */
+	
+	data_type* new = (data_type*)malloc(sizeof(data_type));
+	new->type = type;
+	return new;
 }
 
 static void goto_next_tok(void) {

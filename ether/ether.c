@@ -27,11 +27,10 @@ int main (int argc, char** argv) {
 	printf("--- END ---\n");
 
 	parser_init(srcfile, tokens);
-	expr* e = parser_run(&err);
+	stmt** stmts = parser_run(&err);
 	if (err == ETHER_ERROR) quit();
 
 	printf("\n--- AST ---\n");
-	print_ast(e);
 	printf("--- END ---\n");
 }
 
