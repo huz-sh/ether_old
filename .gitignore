@@ -1,3 +1,4 @@
-dev/
+.dev/
 bin/
+obj/
 .gdb_history

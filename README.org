@@ -32,23 +32,18 @@ develop high-quality and effient code.
 
 ** Installation
 
+/Ether/ uses GNU make to automatically build the entire 
+Ether platform. See Dependencies section for details.
+
 **** Dependencies
 
 + gcc (or any other standard-compliant C++ compiler)
++ make (or nmake for /Windows/)
 
-/Ether/ provides platform-specific scripts to automatically
-build the entire Ether platform. See Dependencies section for details.
-
-**** Windows
-
-#+BEGIN_SRC sh
-.\build.bat
-#+END_SRC
-
-**** MacOS / Linux
+**** Windows / MacOS / Linux
 
 #+BEGIN_SRC 
-./build.sh
+make -j8
 #+END_SRC
 
 After building, the relevent binaries can be found in 
