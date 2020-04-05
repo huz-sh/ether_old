@@ -2,4 +2,4 @@
 ;; this is not the final version of the
 ;; semantics, so do not adhere to this.
 
-[[1 + 2] + 2]
+[2 * [4 / 2] + [2 + 2]]

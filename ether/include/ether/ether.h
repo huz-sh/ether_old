@@ -72,7 +72,7 @@ typedef struct {
 char* strni(char* start, char* end);
 char* stri(char* str);
 
-#define LEXER_ERROR true
+#define ETHER_ERROR true
 #define LEXER_ERROR_COUNT_MAX 10
 
 typedef enum {
@@ -124,5 +124,7 @@ struct expr {
 
 void parser_init(file, token**);
 expr* parser_run(int*);
-	
+
+void print_ast(expr*);
+
 #endif

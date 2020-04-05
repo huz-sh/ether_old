@@ -1,5 +1,7 @@
 #include <ether/ether.h>
 
+static void quit(void);
+
 int main (int argc, char** argv) {
 	if (argc < 2) {
 		ether_error("no input files supplied");			
@@ -15,13 +17,24 @@ int main (int argc, char** argv) {
 	lexer_init(srcfile);
 	int err = false;
 	token** tokens = lexer_run(&err);
-	if (err == LEXER_ERROR) ether_error("compilation aborted.");
-	
+	if (err == ETHER_ERROR) quit();
+
+	printf("--- TOKENS ---\n");
 	for (uint i = 0; i < buf_len(tokens); ++i) {
 		printf("token: '%s' at line %ld\n",
 			   (tokens[i]->lexeme), tokens[i]->line);
 	}
+	printf("--- END ---\n");
 
 	parser_init(srcfile, tokens);
 	expr* e = parser_run(&err);
+	if (err == ETHER_ERROR) quit();
+
+	printf("\n--- AST ---\n");
+	print_ast(e);
+	printf("--- END ---\n");
+}
+
+static void quit(void) {
+	ether_error("compilation aborted.");
 }
