@@ -7,6 +7,7 @@ static uint64 tokens_len;
 
 static uint64 idx;
 static uint error_count;
+static int error_occured;
 
 /**** PARSER FUNCTIONS ****/
 static expr* _expr(void);
@@ -33,11 +34,12 @@ void parser_init(file src, token** t) {
 	tokens_len = buf_len(t);
 	idx = 0UL;
 	error_count = 0;
+	error_occured = false;
 }
 
 expr* parser_run(int* err) {
 	expr* e = _expr();
-	if (err) *err = ETHER_ERROR;
+	if (err) *err = error_occured;
 	return e;
 }
 
@@ -162,5 +164,7 @@ static void errorc(const char* msg, ...) {
 	
 	/* TODO: synchonization here */
 	goto_next_tok(); /* TODO: remove this */
+
+	error_occured = ETHER_ERROR;
 	++error_count;
 }

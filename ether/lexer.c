@@ -30,7 +30,7 @@ void lexer_init(file src) {
 	start = srcfile.contents;
 	cur = srcfile.contents;
 	line = 1;
-	error_count = false;
+	error_count = 0;
 	error_occured = false;
 	last_newline = srcfile.contents;
 }
