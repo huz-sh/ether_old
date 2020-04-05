@@ -14,8 +14,10 @@ static int error_occured;
 static stmt* decl(void);
 static stmt* _stmt(void);
 static stmt* var_decl(data_type*, token*);
+static stmt* expr_stmt(void);
 
 static expr* _expr(void);
+static expr* _expr_no_bkt(void);
 static expr* expr_assign(void);
 static expr* expr_add_sub(void);
 static expr* expr_mul_div(void);
@@ -26,6 +28,7 @@ static expr* make_number_expr(token*);
 static expr* make_variable_expr(token*);
 
 static int match(token_type);
+static data_type* match_data_type(void);
 static void expect(token_type, const char*, ...);
 inline static void consume_lbkt(void);
 inline static void consume_rbkt(void);
@@ -52,7 +55,7 @@ void parser_init(file src, token** t) {
 
 stmt** parser_run(int* err) {
 	while (cur() != null) {
-		stmt* s = decl();
+		stmt* s = _stmt(); /* TODO: add decl instead of stmt */
 		if (s) buf_push(stmts, s);
 	}
 	if (err) *err = error_occured;
@@ -77,7 +80,21 @@ static stmt* decl(void) {
 
 /* only statements inside scope / function */
 static stmt* _stmt(void) {
+	consume_lbkt();
 	
+	stmt* s = null;
+	data_type* dt = null;
+	if ((dt = match_data_type()) != null) {
+		consume_colon();
+		token* identifier = consume_identifier();
+		s = var_decl(dt, identifier);
+	}
+	else {
+		s = expr_stmt();
+	}
+	
+	consume_rbkt();
+	return s;
 }
 
 #define MAKE_STMT(x) stmt* x = (stmt*)malloc(sizeof(stmt));
@@ -96,9 +113,23 @@ static stmt* var_decl(data_type* d, token* t) {
 	return new;
 }
 
+static stmt* expr_stmt(void) {
+	MAKE_STMT(new);
+	expr* e = _expr_no_bkt();
+	new->type = STMT_EXPR;
+	new->expr_stmt = e;
+	return new;
+}
+
 static expr* _expr(void) {
+	consume_lbkt();
 	expr* e = expr_assign();
+	consume_rbkt();
 	return e;
+}
+
+static expr* _expr_no_bkt(void) {
+	return expr_assign();
 }
 
 static expr* expr_assign(void) {
@@ -179,6 +210,14 @@ static int match(token_type t) {
 		return true;
 	}	
 	return false;
+}
+
+static data_type* match_data_type(void) {
+	if (match(TOKEN_IDENTIFIER)) {
+		data_type* new = (data_type*)malloc(sizeof(data_type));
+		new->type = prev();
+		return new;
+	}
 }
 
 static void expect(token_type t, const char* msg, ...) {

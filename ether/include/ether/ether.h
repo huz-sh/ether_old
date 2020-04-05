@@ -143,7 +143,8 @@ typedef struct {
 typedef struct stmt stmt;
 
 typedef enum {
-	STMT_VAR_DECL,
+	STMT_VAR_DECL,	
+	STMT_EXPR,
 } stmt_type;
 
 typedef struct {
@@ -156,6 +157,7 @@ struct stmt {
 	stmt_type type;
 	union {
 		stmt_var_decl var_decl;
+		expr* expr_stmt;
 	};
 };
 
