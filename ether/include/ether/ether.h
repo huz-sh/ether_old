@@ -62,6 +62,10 @@ typedef struct {
 } file;
 
 file ether_read_file(char* fpath);
+char* get_line_at(file f, uint64 l);
+int print_file_line(file f, uint64 l);
+int print_marker_arrow_ln(file srcfile, uint64 line, uint32 col);
+
 void ether_error(const char* fmt, ...);
 
 typedef struct {
@@ -73,6 +77,8 @@ char* strni(char* start, char* end);
 char* stri(char* str);
 
 #define ETHER_ERROR true
+#define ETHER_SUCCESS false
+
 #define LEXER_ERROR_COUNT_MAX 10
 
 typedef enum {
@@ -94,6 +100,7 @@ typedef struct {
 	token_type type;
 	char* lexeme;
 	uint64 line;
+	uint32 col;
 } token;
 
 void lexer_init(file);
@@ -131,6 +138,6 @@ expr* parser_run(int*);
 #define print_ast(e)
 #endif
 
-void _print_ast(expr*);
+void _print_ast(expr* e);
 
 #endif

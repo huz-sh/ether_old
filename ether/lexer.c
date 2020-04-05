@@ -10,6 +10,8 @@ static uint64 line;
 static uint error_count;
 static int error_occured;
 
+static char* last_newline;
+
 /**** LEXER FUNCTIONS ****/
 static void identifier(void);
 static void number(void);
@@ -19,6 +21,7 @@ static void comment(void);
 static void addt(token_type);
 static int match(char);
 static int at_end(void);
+static uint32 get_column(void);
 static void error(const char*, ...);
 
 void lexer_init(file src) {
@@ -29,6 +32,7 @@ void lexer_init(file src) {
 	line = 1;
 	error_count = false;
 	error_occured = false;
+	last_newline = srcfile.contents;
 }
 
 token** lexer_run(int* err) {
@@ -51,6 +55,7 @@ token** lexer_run(int* err) {
 			case ' ': ++cur; break;
 				
 			case '\n': {
+				last_newline = cur;
 				++line;
 				++cur;
 			} break;
@@ -146,6 +151,7 @@ static void addt(token_type t) {
 	new->type = t;
 	new->lexeme = strni(start, ++cur);
 	new->line = line;
+	new->col = get_column();
 	buf_push(tokens, new);	
 }
 
@@ -166,12 +172,24 @@ static int at_end(void) {
 	return false;
 }
 
+static uint32 get_column(void) {
+	uint32 column = (start - last_newline);
+	column = (line == 1 ? column+1 : column);
+	return column;
+}
+
 static void error(const char* msg, ...) {
+	uint32 column = get_column();
 	va_list ap;
 	va_start(ap, msg);
-	printf("%s:%ld: error: ", srcfile.fpath, line);
+	printf("%s:%ld:%d: error: ", srcfile.fpath, line, column);
 	vprintf(msg, ap);
 	printf("\n");
+	
+	print_file_line(srcfile, line);
+
+	print_marker_arrow_ln(srcfile, line, column);
+	
 	error_occured = ETHER_ERROR;
 	++error_count;
 }

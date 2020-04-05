@@ -14,3 +14,51 @@ file ether_read_file(char* fpath) {
 	
 	return (file){ fpath, contents, size };
 }
+
+char* get_line_at(file f, uint64 l) {
+	assert(l != 0);
+		
+	const uint64 target_newline = l - 1;
+	uint64 nnewline = 0;
+	char* line_to_print = f.contents;
+
+	while (nnewline < target_newline) {
+		while (*line_to_print != '\n') {
+			if (*line_to_print == '\0') return null;
+			++line_to_print;
+		}
+		++line_to_print;
+		++nnewline;
+	}
+	return line_to_print;
+}
+
+int print_file_line(file f, uint64 l) {
+	assert(l != 0);
+
+	char* line_to_print = get_line_at(f, l);
+	assert(line_to_print);
+
+	while (*line_to_print != '\n') {
+		if (*line_to_print == '\0') break;
+		printf("%c", *line_to_print);
+		++line_to_print;
+	}
+	printf("\n");
+	return ETHER_SUCCESS;
+}
+
+int print_marker_arrow_ln(file srcfile, uint64 line, uint32 col) {
+	char* whitespace_start = get_line_at(srcfile, line);
+	assert(whitespace_start);
+	const char* marker = whitespace_start + col - 1;
+
+	while (whitespace_start != marker) {
+		if (*whitespace_start == '\0') return ETHER_ERROR;
+		if (*whitespace_start == '\t') printf("    ");
+		else printf(" ");
+		++whitespace_start;
+	}
+	printf("^\n");
+	return ETHER_SUCCESS;
+}
