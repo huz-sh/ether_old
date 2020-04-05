@@ -18,6 +18,7 @@ static expr* expr_primary(void);
 
 static expr* make_binary_expr(expr*, expr*, token*);
 static expr* make_number_expr(token*);
+static expr* make_variable_expr(token*);
 
 static int match(token_type);
 static void expect(token_type, const char*, ...);
@@ -79,6 +80,9 @@ static expr* expr_primary(void) {
 	if (match(TOKEN_NUMBER)) {
 		return make_number_expr(prev());
 	}
+	else if (match(TOKEN_IDENTIFIER)) {
+		return make_variable_expr(prev());
+	}
 	else if (match(TOKEN_L_BKT)) {
 		expr* e = expr_assign();
 		expect(TOKEN_R_BKT, "expected ']' at end of grouping expr");
@@ -104,6 +108,13 @@ static expr* make_binary_expr(expr* left, expr* right, token* op) {
 static expr* make_number_expr(token* t) {
 	MAKE_EXPR(new);
 	new->type = EXPR_NUMBER;
+	new->number = t;
+	return new;
+}
+
+static expr* make_variable_expr(token* t) {
+	MAKE_EXPR(new);
+	new->type = EXPR_VARIABLE;
 	new->number = t;
 	return new;
 }

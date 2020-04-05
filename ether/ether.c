@@ -21,8 +21,8 @@ int main (int argc, char** argv) {
 
 	printf("--- TOKENS ---\n");
 	for (uint i = 0; i < buf_len(tokens); ++i) {
-		printf("token: '%s' at line %ld\n",
-			   (tokens[i]->lexeme), tokens[i]->line);
+		printf("token: '%s' at line %ld, col %d\n",
+			   (tokens[i]->lexeme), tokens[i]->line, tokens[i]->col);
 	}
 	printf("--- END ---\n");
 

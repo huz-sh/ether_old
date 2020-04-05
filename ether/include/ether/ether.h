@@ -129,7 +129,7 @@ struct expr {
 	union {
 		expr_binary binary;
 		token* number;
-		token* identifier;
+		token* variable;
 	};
 };
 
