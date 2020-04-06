@@ -41,6 +41,7 @@ inline static token* consume_identifier(void);
 static data_type* consume_data_type(void);
 
 static void goto_next_tok(void);
+static void goto_prev_tok(void);
 static token* cur(void);
 static token* prev(void);
 
@@ -95,9 +96,14 @@ static stmt* _stmt(void) {
 	stmt* s = null;
 	data_type* dt = null;
 	if ((dt = match_data_type()) != null) {
-		consume_colon();
-		token* identifier = consume_identifier();
-		s = var_decl(dt, identifier);
+		if (match(TOKEN_COLON)) {
+			token* identifier = consume_identifier();
+			s = var_decl(dt, identifier);
+		}
+		else {
+			goto_prev_tok();
+			s = expr_stmt();
+		}
 	}
 	else {
 		s = expr_stmt();
@@ -276,8 +282,14 @@ static data_type* consume_data_type(void) {
 }
 
 static void goto_next_tok(void) {
-	if (idx == 0  || (idx - 1) < tokens_len) {
+	if (idx == 0 || (idx - 1) < tokens_len) {
 		++idx;
+	}
+}
+
+static void goto_prev_tok(void) {
+	if (idx > 0) {
+		--idx;
 	}
 }
 

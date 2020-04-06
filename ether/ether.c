@@ -1,5 +1,8 @@
 #include <ether/ether.h>
 
+#define PRINT_TOKENS 0
+#define PRINT_AST	 0
+
 static void quit(void);
 
 int main (int argc, char** argv) {
@@ -19,19 +22,23 @@ int main (int argc, char** argv) {
 	token** tokens = lexer_run(&err);
 	if (err == ETHER_ERROR) quit();
 
+#if PRINT_TOKENS
 	printf("--- TOKENS ---\n");
 	for (uint i = 0; i < buf_len(tokens); ++i) {
 		printf("token: '%s' at line %ld, col %d\n",
 			   (tokens[i]->lexeme), tokens[i]->line, tokens[i]->col);
 	}
-	printf("--- END ---\n");
+	printf("--- END ---\n\n");
+#endif
 
 	parser_init(srcfile, tokens);
 	stmt** stmts = parser_run(&err);
 	if (err == ETHER_ERROR) quit();
 
-	printf("\n--- AST ---\n");
+#if PRINT_AST
+	printf("--- AST ---\n");
 	printf("--- END ---\n");
+#endif
 }
 
 static void quit(void) {
