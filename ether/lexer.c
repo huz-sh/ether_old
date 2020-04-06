@@ -11,6 +11,7 @@ static uint error_count;
 static int error_occured;
 
 static char* last_newline;
+static char* last_to_last_newline;
 
 /**** LEXER FUNCTIONS ****/
 static void identifier(void);
@@ -19,6 +20,8 @@ static void string(void);
 static void comment(void);
 
 static void addt(token_type);
+static void add_eof(void);
+
 static int match(char);
 static int at_end(void);
 static uint32 get_column(void);
@@ -33,6 +36,7 @@ void lexer_init(file src) {
 	error_count = 0;
 	error_occured = false;
 	last_newline = srcfile.contents;
+	last_to_last_newline = null;
 }
 
 token** lexer_run(int* err) {
@@ -56,6 +60,7 @@ token** lexer_run(int* err) {
 			case ' ': ++cur; break;
 				
 			case '\n': {
+				last_to_last_newline = last_newline;
 				last_newline = cur;
 				++line;
 				++cur;
@@ -95,6 +100,7 @@ token** lexer_run(int* err) {
 	}
 
 	if (err) *err = error_occured;
+	add_eof();
 	return tokens;
 }
 
@@ -154,6 +160,20 @@ static void addt(token_type t) {
 	new->line = line;
 	new->col = get_column();
 	buf_push(tokens, new);	
+}
+
+static void add_eof(void) {
+	uint64 eof_line = line;
+	if (*(cur - 1) == '\n') {
+		--eof_line;
+	}
+
+	token* t = (token*)malloc(sizeof(token));
+	t->type = TOKEN_EOF;
+	t->lexeme = "";
+	t->line = eof_line;
+	t->col = cur - last_to_last_newline - 1;
+	buf_push(tokens, t);
 }
 
 static int match(char c) {

@@ -100,6 +100,8 @@ typedef enum {
 	TOKEN_STRING,
 	
 	TOKEN_SCOPE,
+
+	TOKEN_EOF,
 } token_type;
 
 typedef struct {

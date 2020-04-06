@@ -62,7 +62,7 @@ void parser_init(file src, token** t) {
 }
 
 stmt** parser_run(int* err) {
-	while (cur() != null) {
+	while (cur()->type != TOKEN_EOF) {
 		stmt* s = _stmt(); /* TODO: add decl instead of stmt */
 		if (s) buf_push(stmts, s);
 	}
@@ -144,8 +144,13 @@ static expr* _expr_no_bkt(void) {
 }
 
 static expr* expr_assign(void) {
-	/* TODO: parse actual assign expr */
-	return expr_add_sub();
+	expr* left = expr_add_sub();
+	if (match(TOKEN_EQUAL)) {
+		token* eq = prev();
+		expr* right = expr_assign();
+		return make_binary_expr(left, right, eq);
+	}
+	return left;
 }
 
 static expr* expr_add_sub(void) {
@@ -229,6 +234,7 @@ static data_type* match_data_type(void) {
 		new->type = prev();
 		return new;
 	}
+	return null;
 }
 
 static void expect(token_type t, const char* msg, ...) {
@@ -325,11 +331,7 @@ static void error(token* t, const char* msg, ...) {
 
 static void error_sync(void) {
 	while (true) {
-		if (cur() == null) {
-			error_occured = ETHER_ERROR;
-			return;
-		}
-		else if (cur()->type == TOKEN_R_BKT) {
+		if (cur()->type == TOKEN_R_BKT) {
 			if (error_bkt_counter == 0) {
 				/* stmt bkt */
 				goto_next_tok();
@@ -345,6 +347,10 @@ static void error_sync(void) {
 			goto_next_tok();
 		}
 		else {
+			if (cur()->type == TOKEN_EOF) {
+				++error_count;
+				return;
+			}
 			goto_next_tok();
 		}
 	}
