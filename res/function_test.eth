@@ -9,4 +9,4 @@
 	[local_index = [global_index / 2]]]
 
 [void: make_entity [entity:e]
-	[e = [get_e]]]
+	[e = get]]

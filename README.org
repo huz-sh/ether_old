@@ -83,12 +83,16 @@ supports 64-bit desktop platforms.
 	[void: entity_render [entity*:e]
 	    [renderer::submit e.mesh_comp]]]
 
-[int: main [int:argc char**:argv]
-    [entity*:e]
+[int: main [int:argc, char**:argv]
+    [entity*: e]
 	[comptime
-		[assert [== [sizeof entity*] 8]]]	# only 64-bit
+		[assert [[sizeof entity*] == 8]]]	# only 64-bit
 	[zf::entity_init e]
 	[zf::entity_render e]
+
+[test "entity test"
+    [entity: e = [entity_init]]
+    [assert e]]
 #+END_SRC
 
 ** License
