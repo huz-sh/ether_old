@@ -1,7 +1,7 @@
 #include <ether/ether.h>
 
-#define PRINT_TOKENS 0
-#define PRINT_AST	 0
+#define PRINT_TOKENS 1
+#define PRINT_AST	 1
 
 static void quit(void);
 
@@ -25,8 +25,9 @@ int main (int argc, char** argv) {
 #if PRINT_TOKENS
 	printf("--- TOKENS ---\n");
 	for (uint i = 0; i < buf_len(tokens); ++i) {
-		printf("token: '%s' at line %ld, col %d\n",
-			   (tokens[i]->lexeme), tokens[i]->line, tokens[i]->col);
+		printf("token: '%s' (%d) at line %ld, col %d\n",
+			   (tokens[i]->lexeme), tokens[i]->type,
+			   tokens[i]->line, tokens[i]->col);
 	}
 	printf("--- END ---\n\n");
 #endif
@@ -37,6 +38,7 @@ int main (int argc, char** argv) {
 
 #if PRINT_AST
 	printf("--- AST ---\n");
+	print_ast(stmts);
 	printf("--- END ---\n");
 #endif
 }

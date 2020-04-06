@@ -1,0 +1,12 @@
+;; this is a function test file.
+;; do not adhere to this, as it may
+;; change during development.
+
+[char: global_index = [1]]
+		
+[int: main [int:argc, char:argv]
+	[int: local_index]
+	[local_index = [global_index / 2]]]
+
+[void: make_entity [entity:e]
+	[e = [get_e]]]

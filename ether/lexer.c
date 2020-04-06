@@ -52,6 +52,7 @@ token** lexer_run(int* err) {
 			case '[': addt(TOKEN_L_BKT); break;
 			case ']': addt(TOKEN_R_BKT); break;
 			case '=': addt(TOKEN_EQUAL); break;
+			case ',': addt(TOKEN_COMMA); break;
 
 			case '"': string(); break;
 				
@@ -163,8 +164,10 @@ static void addt(token_type t) {
 }
 
 static void add_eof(void) {
+	int newline = false;
 	uint64 eof_line = line;
 	if (*(cur - 1) == '\n') {
+		newline = true;
 		--eof_line;
 	}
 
@@ -172,7 +175,8 @@ static void add_eof(void) {
 	t->type = TOKEN_EOF;
 	t->lexeme = "";
 	t->line = eof_line;
-	t->col = cur - last_to_last_newline - 1;
+	if (newline) t->col = cur - last_to_last_newline - 1;
+	else t->col = cur - last_newline;
 	buf_push(tokens, t);
 }
 

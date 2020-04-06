@@ -16,6 +16,7 @@ static int start_stmt_bkt;
 /**** PARSER FUNCTIONS ****/
 static stmt* decl(void);
 static stmt* _stmt(void);
+static stmt* func(data_type* d, token* t);
 static stmt* var_decl(data_type*, token*);
 static stmt* expr_stmt(void);
 
@@ -64,7 +65,7 @@ void parser_init(file src, token** t) {
 
 stmt** parser_run(int* err) {
 	while (cur()->type != TOKEN_EOF) {
-		stmt* s = _stmt(); /* TODO: add decl instead of stmt */
+		stmt* s = decl();
 		if (s) buf_push(stmts, s);
 	}
 	if (err) *err = error_occured;
@@ -74,17 +75,21 @@ stmt** parser_run(int* err) {
 /* only top level statements (functions, structs, var) */
 static stmt* decl(void) {
 	consume_lbkt();
-	
+
+	stmt* s = null;
 	data_type* type = consume_data_type();
 	consume_colon();
 	token* identifier = consume_identifier();
 	if (!match(TOKEN_L_BKT)) {
 		/* variable declaration */
-		stmt* s = var_decl(type, identifier);
+		s = var_decl(type, identifier);
 		consume_rbkt();
-		return s;
 	}
-	return null;
+	else {
+		s = func(type, identifier);
+	}
+	
+	return s;
 }
 
 /* only statements inside scope / function */
@@ -115,6 +120,37 @@ static stmt* _stmt(void) {
 }
 
 #define MAKE_STMT(x) stmt* x = (stmt*)malloc(sizeof(stmt));
+
+static stmt* func(data_type* d, token* t) {
+	param* params = null;
+	if (!match(TOKEN_R_BKT)) {
+		do {
+			data_type* p_type = consume_data_type();
+			consume_colon();
+			token* p_name = consume_identifier();
+			buf_push(params, (param){ p_type, p_name });
+		} while (match(TOKEN_COMMA));
+		consume_rbkt();
+	}
+
+	stmt** body = null;
+	while (!match(TOKEN_R_BKT)) {
+		if (cur()->type == TOKEN_EOF) {
+			errorc("end of file while parsing function body; did you forget a ']'?");
+			return;
+		}
+		stmt* s = _stmt();
+		if (s) buf_push(body, s);
+	}
+
+	MAKE_STMT(new);
+	new->type = STMT_FUNC;
+	new->func.type = d;
+	new->func.identifier = t;
+	new->func.params = params;
+	new->func.body = body;
+	return new;
+}
 
 static stmt* var_decl(data_type* d, token* t) {
 	expr* init = null;
