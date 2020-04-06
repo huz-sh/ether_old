@@ -2,6 +2,7 @@
 ;; please do not adhere to this,
 ;; as it may change during development.
 
-[int: h = [1 + 2]]
-[1+2]
-[char: hello]
+[charl = [0]]
+[char: he = [1+2]]
+[int:  = [1 + 2]]
+[char: l = 2]

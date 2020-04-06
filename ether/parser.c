@@ -9,6 +9,9 @@ static stmt** stmts;
 static uint64 idx;
 static uint error_count;
 static int error_occured;
+static int error_bkt_counter;
+static int error_panic;
+static int start_stmt_bkt;
 
 /**** PARSER FUNCTIONS ****/
 static stmt* decl(void);
@@ -30,6 +33,7 @@ static expr* make_variable_expr(token*);
 static int match(token_type);
 static data_type* match_data_type(void);
 static void expect(token_type, const char*, ...);
+
 inline static void consume_lbkt(void);
 inline static void consume_rbkt(void);
 inline static void consume_colon(void);
@@ -43,6 +47,7 @@ static token* prev(void);
 static void errorc(const char*, ...);
 static void errorp(const char*, ...);
 static void error(token*, const char*, ...);
+static void error_sync(void);
 
 void parser_init(file src, token** t) {
 	srcfile = src;
@@ -51,6 +56,9 @@ void parser_init(file src, token** t) {
 	idx = 0UL;
 	error_count = 0;
 	error_occured = false;
+	error_bkt_counter = 0;
+	error_panic = false;
+	start_stmt_bkt = false;
 }
 
 stmt** parser_run(int* err) {
@@ -80,7 +88,9 @@ static stmt* decl(void) {
 
 /* only statements inside scope / function */
 static stmt* _stmt(void) {
+	start_stmt_bkt = true;
 	consume_lbkt();
+	start_stmt_bkt = false;
 	
 	stmt* s = null;
 	data_type* dt = null;
@@ -94,6 +104,7 @@ static stmt* _stmt(void) {
 	}
 	
 	consume_rbkt();
+	error_panic = false;
 	return s;
 }
 
@@ -232,6 +243,7 @@ static void expect(token_type t, const char* msg, ...) {
 }
 
 inline static void consume_lbkt(void) {
+	if (!start_stmt_bkt) error_bkt_counter++;
 	expect(TOKEN_L_BKT, "expected '[' here:");
 }
 
@@ -291,7 +303,10 @@ static void errorp(const char* msg, ...) {
 	va_end(ap);
 }
 
-static void error(token* t, const char* msg, ...) {
+static void error(token* t, const char* msg, ...) {	
+	if (error_panic) return;
+	error_panic = true;
+	
 	va_list ap;
 	va_start(ap, msg);
 	printf("%s:%ld:%d: error: ", srcfile.fpath, t->line, t->col);
@@ -301,10 +316,36 @@ static void error(token* t, const char* msg, ...) {
 
 	print_file_line_with_info(srcfile, t->line);
 	print_marker_arrow_with_info_ln(srcfile, t->line, t->col);
-	
-	/* TODO: synchonization here */
-	goto_next_tok(); /* TODO: remove this */
 
+	error_sync();
+	
 	error_occured = ETHER_ERROR;
 	++error_count;
+}
+
+static void error_sync(void) {
+	while (true) {
+		if (cur() == null) {
+			error_occured = ETHER_ERROR;
+			return;
+		}
+		else if (cur()->type == TOKEN_R_BKT) {
+			if (error_bkt_counter == 0) {
+				/* stmt bkt */
+				goto_next_tok();
+				return;
+			}
+			else if (error_bkt_counter > 0) {
+				error_bkt_counter--;
+				goto_next_tok();
+			}
+		}
+		else if (cur()->type == TOKEN_L_BKT) {
+			error_bkt_counter++;
+			goto_next_tok();
+		}
+		else {
+			goto_next_tok();
+		}
+	}
 }
