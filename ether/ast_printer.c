@@ -40,13 +40,24 @@ void _print_ast(stmt** stmts) {
 
 static void _stmt(stmt* s) {
 	add_tabs();
-	lbkt();
+
+	switch (s->type) {
+		case STMT_FUNC: 
+		case STMT_VAR_DECL: lbkt(); break;
+		default: break;	
+	}
+		
 	switch (s->type) {
 		case STMT_FUNC: func(s); break;
 		case STMT_VAR_DECL: var_decl(s); break;
-		case STMT_EXPR: expr_stmt(s); break;	
+		case STMT_EXPR: expr_stmt(s); break;
 	}
-	rbkt();
+	
+	switch (s->type) {
+		case STMT_FUNC: 
+		case STMT_VAR_DECL: rbkt(); break;
+		default: break;	
+	}
 }
 
 static void _stmtn(stmt* s) {
@@ -173,6 +184,7 @@ static void variable(expr* e) {
 }
 
 static void _func_call(expr* e) {
+	lbkt();
 	size_t args_len = buf_len(e->func_call.args);
 	_token(e->func_call.callee);
 	if (args_len != 0) space();
@@ -182,4 +194,5 @@ static void _func_call(expr* e) {
 			space();
 		}
 	}
+	rbkt();
 }
