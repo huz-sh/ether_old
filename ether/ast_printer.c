@@ -6,6 +6,7 @@ static uint ntab;
 /**** AST PRINTER FUNCTIONS ****/
 static void _stmt(stmt*);
 static void _stmtn(stmt*);
+static void _struct(stmt*);
 static void func(stmt*);
 static void var_decl(stmt*);
 static void expr_stmt(stmt*);
@@ -41,23 +42,16 @@ void _print_ast(stmt** stmts) {
 static void _stmt(stmt* s) {
 	add_tabs();
 
-	switch (s->type) {
-		case STMT_FUNC: 
-		case STMT_VAR_DECL: lbkt(); break;
-		default: break;	
-	}
-		
-	switch (s->type) {
-		case STMT_FUNC: func(s); break;
-		case STMT_VAR_DECL: var_decl(s); break;
-		case STMT_EXPR: expr_stmt(s); break;
-	}
+	if (s->type != STMT_EXPR) lbkt();
 	
 	switch (s->type) {
-		case STMT_FUNC: 
-		case STMT_VAR_DECL: rbkt(); break;
-		default: break;	
+		case STMT_STRUCT:	 _struct(s); break;
+		case STMT_FUNC:		func(s); break;
+		case STMT_VAR_DECL: var_decl(s); break;
+		case STMT_EXPR:		expr_stmt(s); break;
 	}
+
+	if (s->type != STMT_EXPR) rbkt();	
 }
 
 static void _stmtn(stmt* s) {
@@ -65,9 +59,27 @@ static void _stmtn(stmt* s) {
 	newline();
 }
 
+static void _struct(stmt* s) {
+	printf("struct ");
+	_token(s->_struct.identifier);
+
+	struct_field** fields = s->_struct.fields;
+	for (uint i = 0; i < buf_len(s->_struct.fields); ++i) {
+		newline();
+		printf("    ");
+		lbkt();
+		_data_type(fields[i]->type);
+		colon();
+		space();
+		_token(fields[i]->identifier);
+		rbkt();
+	}
+}
+
 static void func(stmt* s) {
 	_data_type(s->func.type);
 	colon();
+	space();
 	_token(s->func.identifier);
 	space();
 	

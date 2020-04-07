@@ -18,7 +18,8 @@ static char** built_in_data_types;
 /**** PARSER FUNCTIONS ****/
 static stmt* decl(void);
 static stmt* _stmt(void);
-static stmt* func(data_type* d, token* t);
+static stmt* _struct(token*);
+static stmt* func(data_type*, token*);
 static stmt* var_decl(data_type*, token*);
 static stmt* expr_stmt(void);
 
@@ -55,6 +56,12 @@ static void error_sync(void);
 #define CUR_ERROR uint err_count = error_count
 #define EXIT_ERROR if (error_count > err_count) return
 
+#define CHECK_EOF(x) \
+if (cur()->type == TOKEN_EOF) { \
+	errorc("end of file while parsing function body; did you forget a ']'?"); \
+	return (x);															\
+}
+
 void parser_init(file src, token** t) {
 	srcfile = src;
 	tokens = t;
@@ -85,7 +92,11 @@ static stmt* decl(void) {
 	consume_lbkt();
 
 	stmt* s = null;
-	if (match_keyword(stri("let"))) { 
+	if (match_keyword(stri("struct"))) {
+		token* identifier = consume_identifier();
+		s = _struct(identifier);
+	}
+	else if (match_keyword(stri("let"))) { 
 		data_type* type = consume_data_type();
 		consume_colon();
 		token* identifier = consume_identifier();
@@ -128,6 +139,31 @@ static stmt* _stmt(void) {
 
 #define MAKE_STMT(x) stmt* x = (stmt*)malloc(sizeof(stmt));
 
+static stmt* _struct(token* identifier) {
+	struct_field** fields = null;
+	if (!match(TOKEN_R_BKT)) {
+		do {
+			consume_lbkt();
+			data_type* d = consume_data_type();
+			consume_colon();
+			token* t = consume_identifier();
+			
+			struct_field* f = (struct_field*)malloc(sizeof(struct_field));
+			f->type = d;
+			f->identifier = t;
+			buf_push(fields, f);
+			consume_rbkt();
+			CHECK_EOF(null);
+		} while (!match(TOKEN_R_BKT));
+	}
+
+	MAKE_STMT(new);
+	new->type = STMT_STRUCT;
+	new->_struct.identifier = identifier;
+	new->_struct.fields = fields;
+	return new;
+}
+
 static stmt* func(data_type* d, token* t) {
 	param* params = null;
 	if (match_keyword("void")) {
@@ -141,16 +177,14 @@ static stmt* func(data_type* d, token* t) {
 			token* p_name = consume_identifier();
 			buf_push(params, (param){ p_type, p_name });
 			EXIT_ERROR null;
+			CHECK_EOF(null);
 		} while (!match(TOKEN_R_BKT));
 	}
 
 	stmt** body = null;
 	while (!match(TOKEN_R_BKT)) {
 		CUR_ERROR;
-		if (cur()->type == TOKEN_EOF) {
-			errorc("end of file while parsing function body; did you forget a ']'?");
-			return null;
-		}
+		CHECK_EOF(null);
 		stmt* s = _stmt();
 		if (s) buf_push(body, s);
 		EXIT_ERROR null;

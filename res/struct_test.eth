@@ -1,0 +1,11 @@
+;; this is the struct feature test file.
+;; do not adhere to the semantics, as it may
+;; change during development.
+
+[console: console_create [uint:x uint:y]
+	[let console:c = [linux_console_create x y]]]
+
+[struct console
+	[uint: x]
+	[uint: y]
+	[platform_data: data]]

@@ -40,12 +40,14 @@ void lexer_init(file src) {
 	last_newline = srcfile.contents;
 	last_to_last_newline = null;
 
+	buf_push(keywords, stri("struct"));
 	buf_push(keywords, stri("let"));
 	buf_push(keywords, stri("deploy"));
 	
 	buf_push(keywords, stri("int"));
 	buf_push(keywords, stri("char"));
 	buf_push(keywords, stri("void"));
+
 }
 
 token** lexer_run(int* err) {

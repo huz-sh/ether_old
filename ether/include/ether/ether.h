@@ -146,10 +146,21 @@ typedef struct {
 typedef struct stmt stmt;
 
 typedef enum {
+	STMT_STRUCT,
 	STMT_FUNC,
 	STMT_VAR_DECL,
 	STMT_EXPR,
 } stmt_type;
+
+typedef struct {
+	data_type* type;
+	token* identifier;
+} struct_field; 
+
+typedef struct {
+	token* identifier;
+	struct_field** fields;	
+} stmt_struct;
 
 typedef struct {
 	data_type* type;
@@ -172,6 +183,7 @@ typedef struct {
 struct stmt {
 	stmt_type type;
 	union {
+		stmt_struct _struct;
 		stmt_func func;
 		stmt_var_decl var_decl;
 		expr* expr_stmt;

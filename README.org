@@ -39,10 +39,16 @@ Ether platform. See *Dependencies* section for details.
 
 + gcc (or any other standard-compliant C compiler)
 
-**** Windows / MacOS / Linux
+**** Windows
 
 #+BEGIN_SRC 
-make -j8
+.\build.bat
+#+END_SRC
+
+**** MacOS / Linux
+
+#+BEGIN_SRC 
+./build.sh
 #+END_SRC
 
 After building, the relevent binaries can be found in 
@@ -73,10 +79,10 @@ cross-compile to.
 [deploy "renderer.eth"]
 
 [struct entity
-    [vec3 pos]
-	[vec3 rot]
-	[vec3 scl]
-	[char* name]]
+    [vec3: pos]
+	[vec3: rot]
+	[vec3: scl]
+	[char*: name]]
 
 [static]
 [void: entity_init [entity*:e]
