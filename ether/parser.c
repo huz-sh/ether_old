@@ -13,6 +13,8 @@ static int error_bkt_counter;
 static int error_panic;
 static int start_stmt_bkt;
 
+static char** built_in_data_types;
+
 /**** PARSER FUNCTIONS ****/
 static stmt* decl(void);
 static stmt* _stmt(void);
@@ -21,18 +23,17 @@ static stmt* var_decl(data_type*, token*);
 static stmt* expr_stmt(void);
 
 static expr* _expr(void);
-static expr* _expr_no_bkt(void);
-static expr* expr_assign(void);
-static expr* expr_add_sub(void);
-static expr* expr_mul_div(void);
 static expr* expr_primary(void);
+static expr* expr_func_call(void);
 
-static expr* make_binary_expr(expr*, expr*, token*);
 static expr* make_number_expr(token*);
 static expr* make_variable_expr(token*);
+static expr* make_func_call(token*, expr**);
 
 static int match(token_type);
+static int match_keyword(char*);
 static data_type* match_data_type(void);
+static int peek(token_type t); 
 static void expect(token_type, const char*, ...);
 
 inline static void consume_lbkt(void);
@@ -51,6 +52,9 @@ static void errorp(const char*, ...);
 static void error(token*, const char*, ...);
 static void error_sync(void);
 
+#define CUR_ERROR uint err_count = error_count
+#define EXIT_ERROR if (error_count > err_count) return
+
 void parser_init(file src, token** t) {
 	srcfile = src;
 	tokens = t;
@@ -61,6 +65,10 @@ void parser_init(file src, token** t) {
 	error_bkt_counter = 0;
 	error_panic = false;
 	start_stmt_bkt = false;
+
+	buf_push(built_in_data_types, stri("int"));
+	buf_push(built_in_data_types, stri("char"));
+	buf_push(built_in_data_types, stri("void"));
 }
 
 stmt** parser_run(int* err) {
@@ -77,15 +85,18 @@ static stmt* decl(void) {
 	consume_lbkt();
 
 	stmt* s = null;
-	data_type* type = consume_data_type();
-	consume_colon();
-	token* identifier = consume_identifier();
-	if (!match(TOKEN_L_BKT)) {
-		/* variable declaration */
+	if (match_keyword(stri("let"))) { 
+		data_type* type = consume_data_type();
+		consume_colon();
+		token* identifier = consume_identifier();
 		s = var_decl(type, identifier);
 		consume_rbkt();
 	}
 	else {
+		data_type* type = consume_data_type();
+		consume_colon();
+		token* identifier = consume_identifier();
+		consume_lbkt();
 		s = func(type, identifier);
 	}
 	
@@ -99,22 +110,18 @@ static stmt* _stmt(void) {
 	start_stmt_bkt = false;
 	
 	stmt* s = null;
-	data_type* dt = null;
-	if ((dt = match_data_type()) != null) {
-		if (match(TOKEN_COLON)) {
-			token* identifier = consume_identifier();
-			s = var_decl(dt, identifier);
-		}
-		else {
-			goto_prev_tok();
-			s = expr_stmt();
-		}
+	if (match_keyword("let")) {
+		data_type* dt = consume_data_type();
+		consume_colon();
+		token* identifier = consume_identifier();
+		s = var_decl(dt, identifier);
+		consume_rbkt();
 	}
 	else {
+		goto_prev_tok();
 		s = expr_stmt();
 	}
 	
-	consume_rbkt();
 	error_panic = false;
 	return s;
 }
@@ -123,24 +130,30 @@ static stmt* _stmt(void) {
 
 static stmt* func(data_type* d, token* t) {
 	param* params = null;
-	if (!match(TOKEN_R_BKT)) {
+	if (match_keyword("void")) {
+		consume_rbkt();
+	}
+	else if (!match(TOKEN_R_BKT)) {
 		do {
+			CUR_ERROR;
 			data_type* p_type = consume_data_type();
 			consume_colon();
 			token* p_name = consume_identifier();
 			buf_push(params, (param){ p_type, p_name });
-		} while (match(TOKEN_COMMA));
-		consume_rbkt();
+			EXIT_ERROR null;
+		} while (!match(TOKEN_R_BKT));
 	}
 
 	stmt** body = null;
 	while (!match(TOKEN_R_BKT)) {
+		CUR_ERROR;
 		if (cur()->type == TOKEN_EOF) {
 			errorc("end of file while parsing function body; did you forget a ']'?");
-			return;
+			return null;
 		}
 		stmt* s = _stmt();
 		if (s) buf_push(body, s);
+		EXIT_ERROR null;
 	}
 
 	MAKE_STMT(new);
@@ -168,51 +181,14 @@ static stmt* var_decl(data_type* d, token* t) {
 
 static stmt* expr_stmt(void) {
 	MAKE_STMT(new);
-	expr* e = _expr_no_bkt();
+	expr* e = _expr();
 	new->type = STMT_EXPR;
 	new->expr_stmt = e;
 	return new;
 }
 
 static expr* _expr(void) {
-	consume_lbkt();
-	expr* e = expr_assign();
-	consume_rbkt();
-	return e;
-}
-
-static expr* _expr_no_bkt(void) {
-	return expr_assign();
-}
-
-static expr* expr_assign(void) {
-	expr* left = expr_add_sub();
-	if (match(TOKEN_EQUAL)) {
-		token* eq = prev();
-		expr* right = expr_assign();
-		return make_binary_expr(left, right, eq);
-	}
-	return left;
-}
-
-static expr* expr_add_sub(void) {
-	expr* left = expr_mul_div();
-	while (match(TOKEN_PLUS) || match(TOKEN_MINUS)) {
-		token* op = prev();
-		expr* right = expr_mul_div();
-		left = make_binary_expr(left, right, op);
-	}
-	return left;
-}
-
-static expr* expr_mul_div(void) {
-	expr* left = expr_primary();
-	while (match(TOKEN_STAR) || match(TOKEN_SLASH)) {
-		token* op = prev();
-		expr* right = expr_primary();
-		left = make_binary_expr(left, right, op);
-	}
-	return left;
+	return expr_primary();
 }
 
 static expr* expr_primary(void) {
@@ -223,9 +199,7 @@ static expr* expr_primary(void) {
 		return make_variable_expr(prev());
 	}
 	else if (match(TOKEN_L_BKT)) {
-		expr* e = expr_assign();
-		consume_rbkt();
-		return e;
+		return expr_func_call();
 	}
 	else {
 		errorc("invalid syntax; expected identifier, literal, or grouping but got '%s'", cur()->lexeme);
@@ -233,16 +207,37 @@ static expr* expr_primary(void) {
 	return null;
 }
 
-#define MAKE_EXPR(x) expr* x = (expr*)malloc(sizeof(expr));
+static expr* expr_func_call(void) {
+	token* callee = null;
+	switch (cur()->type) {
+		case TOKEN_IDENTIFIER:
+		case TOKEN_PLUS:
+		case TOKEN_MINUS:
+		case TOKEN_STAR:
+		case TOKEN_SLASH:
+		case TOKEN_EQUAL: {
+			callee = cur();
+			goto_next_tok();
+		} break;
 
-static expr* make_binary_expr(expr* left, expr* right, token* op) {
-	MAKE_EXPR(new);
-	new->type = EXPR_BINARY;
-	new->binary.left = left;
-	new->binary.right = right;
-	new->binary.op = op;
-	return new;
+		default: {
+			errorc("expected identifier or operator here:");
+			return null;
+		}
+	}
+	
+	expr** args = null;
+	if (!match(TOKEN_R_BKT)) {
+		do {
+			expr* e = _expr();
+			if (e) buf_push(args, e);
+		} while (!match(TOKEN_R_BKT));
+	}
+
+	return make_func_call(callee, args);
 }
+
+#define MAKE_EXPR(x) expr* x = (expr*)malloc(sizeof(expr));
 
 static expr* make_number_expr(token* t) {
 	MAKE_EXPR(new);
@@ -258,13 +253,36 @@ static expr* make_variable_expr(token* t) {
 	return new;
 }
 
+static expr* make_func_call(token* callee, expr** args) {
+	MAKE_EXPR(new);
+	new->type = EXPR_FUNC_CALL;
+	new->func_call.callee = callee;
+	new->func_call.args = args;
+	return new;
+}
+
 static int match(token_type t) {
+	if (peek(t)) {
+		goto_next_tok();
+		return true;
+	}
+	return false;
+}
+
+static int match_keyword(char* s) {
+	if (peek(TOKEN_KEYWORD) && stri(cur()->lexeme) == stri(s)) {
+		goto_next_tok();
+		return true;		
+	}
+	return false;
+}
+
+static int peek(token_type t) {
 	if (idx >= tokens_len) {
 		return false;
 	}
 
 	if (cur()->type == t) {
-		goto_next_tok();
 		return true;
 	}	
 	return false;
@@ -275,6 +293,13 @@ static data_type* match_data_type(void) {
 		data_type* new = (data_type*)malloc(sizeof(data_type));
 		new->type = prev();
 		return new;
+	}
+	for (uint i = 0; i < buf_len(built_in_data_types); ++i) {
+		if (match_keyword(stri(built_in_data_types[i]))) {
+			data_type* new = (data_type*)malloc(sizeof(data_type));
+			new->type = prev();
+			return new;			
+		}
 	}
 	return null;
 }
@@ -309,12 +334,12 @@ inline static token* consume_identifier(void) {
 }
 
 static data_type* consume_data_type(void) {
-	token* type = consume_identifier();
-	/* TODO: match pointer * */
+	data_type* type = match_data_type();
+	if (!type) {
+		errorc("expected data type here:");
+	}
+	return type;
 	
-	data_type* new = (data_type*)malloc(sizeof(data_type));
-	new->type = type;
-	return new;
 }
 
 static void goto_next_tok(void) {
@@ -350,6 +375,7 @@ static void errorc(const char* msg, ...) {
 	va_end(ap);	
 }
 
+/* TODO: check if we need errorp in the final build */
 static void errorp(const char* msg, ...) {
 	va_list ap;
 	va_start(ap, msg);

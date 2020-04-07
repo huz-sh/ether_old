@@ -97,6 +97,7 @@ typedef enum {
 	TOKEN_COMMA, 
 	
 	TOKEN_IDENTIFIER,
+	TOKEN_KEYWORD,
 	TOKEN_NUMBER,
 	TOKEN_STRING,
 	
@@ -116,23 +117,22 @@ void lexer_init(file);
 token** lexer_run(int*);
 
 typedef enum {
-	EXPR_BINARY,
 	EXPR_NUMBER,
 	EXPR_VARIABLE,
+	EXPR_FUNC_CALL,
 } expr_type;
 
 typedef struct expr expr;
 
 typedef struct {
-	expr* left;
-	expr* right;
-	token* op;
-} expr_binary;
+	token* callee;
+	expr** args;
+} func_call;
 
 struct expr {
 	expr_type type;
 	union {
-		expr_binary binary;
+		func_call func_call;
 		token* number;
 		token* variable;
 	};

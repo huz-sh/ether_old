@@ -26,9 +26,9 @@ inline static void newline(void);
 inline static void addc(char);
 
 static void _expr(expr*);
-static void binary(expr*);
 static void number(expr*);
 static void variable(expr*);
+static void _func_call(expr*);
 
 void _print_ast(stmt** stmts) {
 	ntab = 0;
@@ -57,7 +57,6 @@ static void _stmtn(stmt* s) {
 static void func(stmt* s) {
 	_data_type(s->func.type);
 	colon();
-	space();
 	_token(s->func.identifier);
 	space();
 	
@@ -70,7 +69,7 @@ static void func(stmt* s) {
 		_token(p[i].identifier);
 		
 		if (i < params_len - 1) {
-			comma();
+			space();
 		}
 	}
 	rbkt();
@@ -89,9 +88,9 @@ static void func(stmt* s) {
 }
 
 static void var_decl(stmt* s) {
+	printf("let ");
 	_data_type(s->var_decl.type);
 	colon();
-	space();
 	_token(s->var_decl.identifier);
 	if (s->var_decl.initializer) {
 		space();
@@ -158,19 +157,11 @@ inline static void addc(char c) {
 
 static void _expr(expr* e) {
 	switch (e->type) {
-		case EXPR_BINARY: binary(e); break;
 		case EXPR_NUMBER: number(e); break;
 		case EXPR_VARIABLE: variable(e); break;
+		case EXPR_FUNC_CALL: _func_call(e); break;	
 		default: break;
 	}
-}
-
-static void binary(expr* e) {
-	printf("[");
-	_expr(e->binary.left);
-	printf(" %s ", e->binary.op->lexeme);
-	_expr(e->binary.right);
-	printf("]");
 }
 
 static void number(expr* e) {
@@ -179,4 +170,16 @@ static void number(expr* e) {
 
 static void variable(expr* e) {
 	printf(e->variable->lexeme);
+}
+
+static void _func_call(expr* e) {
+	size_t args_len = buf_len(e->func_call.args);
+	_token(e->func_call.callee);
+	if (args_len != 0) space();
+	for (uint i = 0; i < args_len; ++i) {
+		_expr(e->func_call.args[i]);
+		if (i < args_len - 1) {
+			space();
+		}
+	}
 }

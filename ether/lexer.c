@@ -4,6 +4,8 @@
 static file srcfile;
 static token** tokens;
 
+static char** keywords;
+
 static char* start, *cur;
 static uint64 line;
 
@@ -37,6 +39,13 @@ void lexer_init(file src) {
 	error_occured = false;
 	last_newline = srcfile.contents;
 	last_to_last_newline = null;
+
+	buf_push(keywords, stri("let"));
+	buf_push(keywords, stri("deploy"));
+	
+	buf_push(keywords, stri("int"));
+	buf_push(keywords, stri("char"));
+	buf_push(keywords, stri("void"));
 }
 
 token** lexer_run(int* err) {
@@ -110,8 +119,22 @@ static void identifier(void) {
 	while (isalnum(*cur) || *cur == '_') {
 		++cur;
 	}
-	--cur;
-	addt(TOKEN_IDENTIFIER);
+
+	size_t keywords_len = buf_len(keywords);
+	char* keyword = strni(start, cur);
+	int is_keyword = false;
+	for (uint i = 0; i < keywords_len; ++i) {
+		if (keyword == stri(keywords[i])) {
+			is_keyword = true;
+		}
+	}
+
+	token* new = (token*)malloc(sizeof(token));
+	new->type = is_keyword ? TOKEN_KEYWORD : TOKEN_IDENTIFIER;
+	new->lexeme = keyword;
+	new->line = line;
+	new->col = get_column();
+	buf_push(tokens, new);	
 }
 
 static void number(void) {

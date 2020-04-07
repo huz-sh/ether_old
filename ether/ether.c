@@ -1,6 +1,6 @@
 #include <ether/ether.h>
 
-#define PRINT_TOKENS 1
+#define PRINT_TOKENS 0
 #define PRINT_AST	 1
 
 static void quit(void);

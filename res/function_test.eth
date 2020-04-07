@@ -1,12 +1,15 @@
 ;; this is a function test file.
 ;; do not adhere to this, as it may
 ;; change during development.
-
-[char: global_index = [1]]
 		
-[int: main [int:argc, char:argv]
-	[int: local_index]
-	[local_index = [global_index / 2]]]
+[let char:global_index]
 
-[void: make_entity [entity:e]
-	[e = get]]
+[void:make_entity [entity:e]
+	[e]]
+		
+[int:main [int:argc char:argv]
+	[let int:local_index = 1]
+	[+ local_index i]]
+
+[void:main [void]
+	[print 2 3]]
