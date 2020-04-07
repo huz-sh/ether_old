@@ -13,7 +13,7 @@ For other /Ether/ features, see the documentation.
 
 ** Features (bloat-free)
 
-Ether acts more like a toolset than a solution. It gives users
+/Ether/ acts more like a toolset than a solution. It gives users
 the ability to develop on a dynamic platform without compromising
 ease of use. Features like 'compile-time code execution' and 
 'evaluating expressions in an interpreter' are necessary to
@@ -33,11 +33,11 @@ develop high-quality and effient code.
 ** Installation
 
 /Ether/ uses GNU make to automatically build the entire 
-Ether platform. See Dependencies section for details.
+Ether platform. See *Dependencies* section for details.
 
 **** Dependencies
 
-+ gcc (or any other standard-compliant C++ compiler)
++ gcc (or any other standard-compliant C compiler)
 + make (or nmake for /Windows/)
 
 **** Windows / MacOS / Linux
@@ -59,11 +59,11 @@ supports 64-bit desktop platforms.
 
 *** Hello World
 
-#+BEGIN_SRC c++
+#+BEGIN_SRC c
 [deploy stdio]
 
 [int: main [void]
-    [std::putsl "Hello, world!"]]
+    [putsl "Hello, world!"]]
 #+END_SRC
 
 *** Semantic features (brief)
@@ -72,26 +72,31 @@ supports 64-bit desktop platforms.
 [deploy stdio]
 [deploy "renderer.eth"]
 
-[namespace zf
-	[static]
-	[void: entity_init [entity*:e]
-	    [e.pos = null]
-		[e.rot = null]
-		[e.scl = null]
-		[std::putsl e.name]]
+[struct entity
+    [vec3 pos]
+	[vec3 rot]
+	[vec3 scl]
+	[char* name]]
 
-	[void: entity_render [entity*:e]
-	    [renderer::submit e.mesh_comp]]]
+[static]
+[void: entity_init [entity*:e]
+    [e.pos = null]
+	[e.rot = null]
+	[e.scl = null]
+	[putsl e.name]]
+
+[void: entity_render [entity*:e]
+    [renderer_submit e.mesh_comp]]]
 
 [int: main [int:argc, char**:argv]
-    [entity*: e]
+    [entity*:e]
 	[comptime
-		[assert [[sizeof entity*] == 8]]]	# only 64-bit
-	[zf::entity_init e]
-	[zf::entity_render e]
+		[assert [= [sizeof entity*] 8]]] ;; only 64-bit
+	[entity_init e]
+	[entity_render e]
 
 [test "entity test"
-    [entity: e = [entity_init]]
+    [entity:e = [entity_init]]
     [assert e]]
 #+END_SRC
 
