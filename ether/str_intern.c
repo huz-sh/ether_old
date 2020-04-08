@@ -1,23 +1,23 @@
 #include <ether/ether.h>
 
-static intern* interns;
+static Intern* interns;
 
-char* strni(char* start, char* end) {
-	size_t len = end - start;
-	for (size_t i = 0; i < buf_len(interns); ++i) {
-		if (interns[i].len == len &&
-			strncmp(interns[i].str, start, len) == false) {
-			return interns[i].str;
-		}
-	}
+char* str_intern_range(char* start, char* end) {
+    u64 len = end - start;
+    for (u64 i = 0; i < buf_len(interns); ++i) {
+        if (interns[i].len == len &&
+            strncmp(interns[i].str, start, len) == false) {
+            return interns[i].str;
+        }
+    }
 
-	char* str = (char*)malloc(len + 1);
-	memcpy(str, start, len);
-	str[len] = 0;
-	buf_push(interns, (intern){ len, str });
-	return str;
+    char* str = (char*)malloc(len + 1);
+    memcpy(str, start, len);
+    str[len] = 0;
+    buf_push(interns, (Intern){ len, str });
+    return str;
 }
 
-char* stri(char* str) {
-	return strni(str, str + strlen(str));
+char* str_intern(char* str) {
+    return str_intern_range(str, str + strlen(str));
 }

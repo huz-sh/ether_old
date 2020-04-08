@@ -1,210 +1,207 @@
 #include <ether/ether.h>
 
-/**** AST PRINTER STATE VARIABLES ****/
-static uint ntab;
+static uint tab_count;
 
-/**** AST PRINTER FUNCTIONS ****/
-static void _stmt(stmt*);
-static void _stmtn(stmt*);
-static void _struct(stmt*);
-static void func(stmt*);
-static void var_decl(stmt*);
-static void expr_stmt(stmt*);
+static void print_stmt(Stmt*);
+static void print_stmt_with_newline(Stmt*);
+static void print_struct(Stmt*);
+static void print_func(Stmt*);
+static void print_var_decl(Stmt*);
+static void print_expr_stmt(Stmt*);
 
-static void _data_type(data_type*);
+static void print_expr(Expr*);
+static void print_number_expr(Expr*);
+static void print_variable_expr(Expr*);
+static void print_func_call(Expr*);
 
-static void _token(token*);
+static void print_data_type(DataType*);
+static void print_token(Token*);
+static void print_tabs_by_indentation(void);
 
-static void add_tabs(void);
+inline static void print_left_bracket(void);
+inline static void print_right_bracket(void);
+inline static void print_colon(void);
+inline static void print_equal(void);
+inline static void print_space(void);
+inline static void print_newline(void);
+inline static void print_tab(void);
+inline static void print_string(const char*);
+inline static void print_char(char);
 
-inline static void lbkt(void);
-inline static void rbkt(void);
-inline static void colon(void);
-inline static void comma(void);
-inline static void equal(void);
-inline static void space(void);
-inline static void newline(void);
-inline static void addc(char);
-
-static void _expr(expr*);
-static void number(expr*);
-static void variable(expr*);
-static void _func_call(expr*);
-
-void _print_ast(stmt** stmts) {
-	ntab = 0;
-	for (uint64 i = 0; i < buf_len(stmts); ++i) {
-		_stmtn(stmts[i]);
-	}
-	printf("\n");
+void print_ast_debug(Stmt** stmts) {
+    tab_count = 0;
+    for (u64 i = 0; i < buf_len(stmts); ++i) {
+        print_stmt_with_newline(stmts[i]);
+    }
+    print_newline();
 }
 
-static void _stmt(stmt* s) {
-	add_tabs();
-
-	if (s->type != STMT_EXPR) lbkt();
-	
-	switch (s->type) {
-		case STMT_STRUCT:	 _struct(s); break;
-		case STMT_FUNC:		func(s); break;
-		case STMT_VAR_DECL: var_decl(s); break;
-		case STMT_EXPR:		expr_stmt(s); break;
-	}
-
-	if (s->type != STMT_EXPR) rbkt();	
+static void print_stmt(Stmt* stmt) {
+    print_tabs_by_indentation();
+    if (stmt->type != STMT_EXPR) print_left_bracket();
+    switch (stmt->type) {
+        case STMT_STRUCT:   print_struct(stmt); break;
+        case STMT_FUNC:         print_func(stmt); break;
+        case STMT_VAR_DECL: print_var_decl(stmt); break;
+        case STMT_EXPR:         print_expr_stmt(stmt); break;
+    }
+    if (stmt->type != STMT_EXPR) print_right_bracket();
 }
 
-static void _stmtn(stmt* s) {
-	_stmt(s);
-	newline();
+static void print_stmt_with_newline(Stmt* stmt) {
+    print_stmt(stmt);
+    print_newline();
 }
 
-static void _struct(stmt* s) {
-	printf("struct ");
-	_token(s->_struct.identifier);
+static void print_struct(Stmt* stmt) {
+    print_string("struct ");
+    print_token(stmt->struct_stmt.identifier);
 
-	struct_field** fields = s->_struct.fields;
-	for (uint i = 0; i < buf_len(s->_struct.fields); ++i) {
-		newline();
-		printf("    ");
-		lbkt();
-		_data_type(fields[i]->type);
-		colon();
-		space();
-		_token(fields[i]->identifier);
-		rbkt();
-	}
+    Field** fields = stmt->struct_stmt.fields;
+    for (uint i = 0; i < buf_len(fields); ++i) {
+        print_newline();
+        print_tab();
+        print_left_bracket();
+        print_data_type(fields[i]->type);
+        print_colon();
+        print_space();
+        print_token(fields[i]->identifier);
+        print_right_bracket();
+    }
 }
 
-static void func(stmt* s) {
-	_data_type(s->func.type);
-	colon();
-	space();
-	_token(s->func.identifier);
-	space();
-	
-	lbkt();
-	param* p = s->func.params;
-	size_t params_len = buf_len(s->func.params);
-	for (uint64 i = 0; i < params_len; ++i) {
-		_data_type(p[i].type);
-		colon();
-		_token(p[i].identifier);
-		
-		if (i < params_len - 1) {
-			space();
-		}
-	}
-	rbkt();
-	
-	newline();
+static void print_func(Stmt* stmt) {
+    print_data_type(stmt->func.type);
+    print_colon();
+    print_space();
+    print_token(stmt->func.identifier);
+    print_space();
 
-	ntab++;
-	size_t body_len = buf_len(s->func.body);
-	for (uint64 i = 0; i < body_len; ++i) {
-		_stmt(s->func.body[i]);
-		if (i < body_len - 1) {
-			newline();
-		}
-	}
-	ntab--;
+    print_left_bracket();
+    Param** p = stmt->func.params;
+    u64 params_len = buf_len(stmt->func.params);
+    for (u64 i = 0; i < params_len; ++i) {
+        print_data_type(p[i]->type);
+        print_colon();
+        print_token(p[i]->identifier);
+
+        if (i < params_len - 1) {
+            print_space();
+        }
+    }
+    print_right_bracket();
+
+    print_newline();
+    tab_count++;
+    u64 body_len = buf_len(stmt->func.body);
+    for (u64 i = 0; i < body_len; ++i) {
+        print_stmt(stmt->func.body[i]);
+        if (i < (body_len - 1)) {
+            print_newline();
+        }
+    }
+    tab_count--;
 }
 
-static void var_decl(stmt* s) {
-	printf("let ");
-	_data_type(s->var_decl.type);
-	colon();
-	_token(s->var_decl.identifier);
-	if (s->var_decl.initializer) {
-		space();
-		equal();
-		space();
-		_expr(s->var_decl.initializer);
-	}
+static void print_var_decl(Stmt* stmt) {
+    print_string("let ");
+    print_data_type(stmt->var_decl.type);
+    print_colon();
+    print_token(stmt->var_decl.identifier);
+    if (stmt->var_decl.initializer) {
+        print_space();
+        print_equal();
+        print_space();
+        print_expr(stmt->var_decl.initializer);
+    }
 }
 
-static void expr_stmt(stmt* s) {
-	_expr(s->expr_stmt);		
+static void print_expr_stmt(Stmt* stmt) {
+    print_expr(stmt->expr);
 }
 
-static void _data_type(data_type* d) {
-	_token(d->type);
-	/* TODO: pointer */
+static void print_expr(Expr* expr) {
+    switch (expr->type) {
+        case EXPR_NUMBER: print_number_expr(expr); break;
+        case EXPR_VARIABLE: print_variable_expr(expr); break;
+        case EXPR_FUNC_CALL: print_func_call(expr); break;
+    }
 }
 
-static void add_tabs(void) {
-	uint ctab = 0;
-
-	while (ctab != ntab) {
-		printf("    ");
-		++ctab;
-	}
+static void print_number_expr(Expr* expr) {
+    print_string(expr->number->lexeme);
 }
 
-inline static void _token(token* t) {
-	assert(t);
-	printf("%s", t->lexeme);	
+static void print_variable_expr(Expr* expr) {
+    print_string(expr->variable->lexeme);
 }
 
-inline static void lbkt(void) {
-	addc('[');
+static void print_func_call(Expr* expr) {
+    print_left_bracket();
+    u64 args_len = buf_len(expr->func_call.args);
+    print_token(expr->func_call.callee);
+
+    if (args_len != 0) print_space();
+    for (u64 i = 0; i < args_len; ++i) {
+        print_expr(expr->func_call.args[i]);
+        if (i < (args_len - 1)) {
+            print_space();
+        }
+    }
+    print_right_bracket();
 }
 
-inline static void rbkt(void) {
-	addc(']');
+static void print_data_type(DataType* data_type) {
+    print_token(data_type->type);
+    /* TODO: pointer */
 }
 
-inline static void colon(void) {
-	addc(':');
+static void print_tabs_by_indentation(void) {
+    uint current_tab_counter = 0;
+
+    while (current_tab_counter != tab_count) {
+        print_tab();
+        ++current_tab_counter;
+    }
 }
 
-inline static void comma(void) {
-	addc(',');
+inline static void print_token(Token* t) {
+    assert(t);
+    printf("%s", t->lexeme);
 }
 
-inline static void equal(void) {
-	addc('=');
+inline static void print_left_bracket(void) {
+    print_char('[');
 }
 
-inline static void space(void) {
-	addc(' ');
+inline static void print_right_bracket(void) {
+    print_char(']');
 }
 
-inline static void newline(void) {
-	addc('\n');
+inline static void print_colon(void) {
+    print_char(':');
 }
 
-inline static void addc(char c) {
-	printf("%c", c);
+inline static void print_equal(void) {
+    print_char('=');
 }
 
-static void _expr(expr* e) {
-	switch (e->type) {
-		case EXPR_NUMBER: number(e); break;
-		case EXPR_VARIABLE: variable(e); break;
-		case EXPR_FUNC_CALL: _func_call(e); break;	
-		default: break;
-	}
+inline static void print_space(void) {
+    print_char(' ');
 }
 
-static void number(expr* e) {
-	printf(e->number->lexeme);
+inline static void print_newline(void) {
+    print_char('\n');
 }
 
-static void variable(expr* e) {
-	printf(e->variable->lexeme);
+inline static void print_tab(void) {
+    print_string("    ");
 }
 
-static void _func_call(expr* e) {
-	lbkt();
-	size_t args_len = buf_len(e->func_call.args);
-	_token(e->func_call.callee);
-	if (args_len != 0) space();
-	for (uint i = 0; i < args_len; ++i) {
-		_expr(e->func_call.args[i]);
-		if (i < args_len - 1) {
-			space();
-		}
-	}
-	rbkt();
+inline static void print_string(const char* string) {
+    printf("%s", string);
+}
+
+inline static void print_char(char c) {
+    printf("%c", c);
 }
