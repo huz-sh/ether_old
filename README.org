@@ -66,18 +66,13 @@ cross-compile to.
 *** Hello World
 
 #+BEGIN_SRC c
-[deploy stdio]
-
-[int: main [void]
+[define int:main [void]
     [putsl "Hello, world!"]]
 #+END_SRC
 
 *** Semantic features (brief)
 
 #+BEGIN_SRC c
-[deploy stdio]
-[deploy "renderer.eth"]
-
 [struct entity
     [vec3: pos]
 	[vec3: rot]
@@ -85,16 +80,16 @@ cross-compile to.
 	[char*: name]]
 
 [static]
-[void: entity_init [entity*:e]
-    [e.pos = null]
-	[e.rot = null]
-	[e.scl = null]
+[define void:entity_init [entity*:e]
+    [set e.pos null]
+	[set e.rot null]
+	[set e.scl null]
 	[putsl e.name]]
 
-[void: entity_render [entity*:e]
+[define void:entity_render [entity*:e]
     [renderer_submit e.mesh_comp]]]
 
-[int: main [int:argc, char**:argv]
+[define int:main [int:argc, char**:argv]
     [let entity*:e]
 	[comptime
 		[assert [= [sizeof entity*] 8]]] ;; only 64-bit

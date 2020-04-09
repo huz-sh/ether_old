@@ -20,6 +20,7 @@ static void check_file(Stmt**);
 static void check_stmt(Stmt* stmt);
 static void check_struct(Stmt*);
 static void check_func(Stmt*);
+static void check_global_var_decl(Stmt*);
 static void check_var_decl(Stmt*);
 static void check_data_type(DataType* data_type);
 
@@ -118,10 +119,7 @@ static void add_decl_stmt(Stmt* stmt) {
 	}
 
 	else if (stmt->type == STMT_VAR_DECL) {
-		if (is_variable_declared(stmt)) {
-			return;			
-		}
-		else {
+		if (!is_variable_declared(stmt)) {
 			add_variable_to_scope(stmt);
 		}
 	}
@@ -137,7 +135,14 @@ static void check_stmt(Stmt* stmt) {
 	switch (stmt->type) {
 		case STMT_STRUCT:   check_struct(stmt); break;
 		case STMT_FUNC:     check_func(stmt); break;
-		case STMT_VAR_DECL: check_var_decl(stmt); break;	
+		case STMT_VAR_DECL: {
+			if (stmt->var_decl.is_global_var) {
+				check_global_var_decl(stmt);
+			}
+			else {
+				check_var_decl(stmt);
+			}
+		} break;
 	}
 }
 
@@ -150,13 +155,24 @@ static void check_struct(Stmt* stmt) {
 
 static void check_func(Stmt* stmt) {
 	check_data_type(stmt->func.type);
+	Scope* scope = make_scope(current_scope);
+	current_scope = global_scope;
 	for (u64 i = 0; i < buf_len(stmt->func.body); ++i) {
 		check_stmt(stmt->func.body[i]);
 	}
+	current_scope = scope->parent_scope;
+}
+
+static void check_global_var_decl(Stmt* stmt) {
+	check_data_type(stmt->var_decl.type);
+	/* TODO: fill this for initializer */	
 }
 
 static void check_var_decl(Stmt* stmt) {
 	check_data_type(stmt->var_decl.type);
+	if (!is_variable_declared(stmt)) {
+		add_variable_to_scope(stmt);
+	}
 	/* TODO: fill this for initializer */	
 }
 
@@ -181,19 +197,23 @@ static void check_data_type(DataType* data_type) {
 }
 
 static bool is_variable_declared(Stmt* var) {
-	for (u64 i = 0; i < buf_len(current_scope->variables); ++i) {
-		if (is_token_identical(var->var_decl.identifier,
-							   current_scope->variables[i]->var_decl.identifier)) {
-			error(var->var_decl.identifier,
-				  "redeclaration of variable '%s':",
-				  var->var_decl.identifier->lexeme);
-			note(current_scope->variables[i]->var_decl.identifier,
-				 "variable '%s' previously declared here: ",
-				 current_scope->variables[i]->var_decl.identifier->lexeme);
-			return false;
+	Scope* scope = current_scope;
+	while (scope != null) {
+		for (u64 i = 0; i < buf_len(scope->variables); ++i) {
+			if (is_token_identical(var->var_decl.identifier,
+								   scope->variables[i]->var_decl.identifier)) {
+				error(var->var_decl.identifier,
+					  "redeclaration of variable '%s':",
+					  var->var_decl.identifier->lexeme);
+				note(scope->variables[i]->var_decl.identifier,
+					 "variable '%s' previously declared here: ",
+					 scope->variables[i]->var_decl.identifier->lexeme);
+				return true;
+			}
 		}
+		scope = scope->parent_scope;
 	}
-	return true;
+	return false;
 }
 
 static bool is_token_identical(Token* a, Token* b) {

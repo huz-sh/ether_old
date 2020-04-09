@@ -1,5 +1,9 @@
 #include <ether/ether.h>
 
+#define TAB_SIZE 4
+
+static void print_tab(void);
+
 SourceFile* ether_read_file(char* fpath) {
 	/* TODO: more thorough error checking */
 	FILE* fp = fopen(fpath, "r");
@@ -47,7 +51,7 @@ error_code print_file_line(SourceFile* file, u64 line) {
 	while (*line_to_print != '\n') {
 		if (*line_to_print == '\0') break;
 
-		if (*line_to_print == '\t') printf("	");
+		if (*line_to_print == '\t') print_tab();
 		else printf("%c", *line_to_print);
 		++line_to_print;
 	}
@@ -67,7 +71,7 @@ error_code print_marker_arrow_ln(SourceFile* file, u64 line, u32 column) {
 
 	while (whitespace_start != marker) {
 		if (*whitespace_start == '\0') return ETHER_ERROR;
-		if (*whitespace_start == '\t') printf("	   ");
+		if (*whitespace_start == '\t') print_tab();
 		else printf(" ");
 		++whitespace_start;
 	}
@@ -79,4 +83,10 @@ error_code print_marker_arrow_with_info_ln(SourceFile* file,
 										   u64 line, u32 column) {
 	printf("%6s | ", "");
 	return print_marker_arrow_ln(file, line, column);
+}
+
+static void print_tab(void) {
+	for (u8 i = 0; i < TAB_SIZE; ++i) {
+		printf(" ");
+	}
 }

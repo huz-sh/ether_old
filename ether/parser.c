@@ -18,7 +18,7 @@ static Stmt* parse_decl(void);
 static Stmt* parse_stmt(void);
 static Stmt* parse_struct(Token*);
 static Stmt* parse_func(DataType*, Token*);
-static Stmt* parse_var_decl(DataType*, Token*);
+static Stmt* parse_var_decl(DataType*, Token*, bool);
 static Stmt* parse_expr_stmt(void);
 
 static Expr* parse_expr(void);
@@ -49,6 +49,7 @@ static Token* current(void);
 static Token* previous(void);
 
 static void error_at_current(const char*, ...);
+static void error_at_previous(const char*, ...);
 static void error(Token*, const char*, ...);
 static void warning_at_previous(const char*, ...);
 static void warning(Token*, const char*, ...);
@@ -105,15 +106,20 @@ static Stmt* parse_decl(void) {
 		DataType* type = consume_data_type();
 		consume_colon();
 		Token* identifier = consume_identifier();
-		stmt = parse_var_decl(type, identifier);
+		stmt = parse_var_decl(type, identifier, true);
 		consume_right_bracket();
 	}
-	else {
+	else if (match_keyword("define")) {
 		DataType* type = consume_data_type();
 		consume_colon();
 		Token* identifier = consume_identifier();
 		consume_left_bracket();
 		stmt = parse_func(type, identifier);
+	}
+	else {
+		error_at_current("expected keyword 'struct', 'define' or 'let' "
+						 "in global scope; did you miss a ']'?");
+		return null;
 	}
 
 	return stmt;
@@ -130,8 +136,18 @@ static Stmt* parse_stmt(void) {
 		DataType* dt = consume_data_type();
 		consume_colon();
 		Token* identifier = consume_identifier();
-		stmt = parse_var_decl(dt, identifier);
+		stmt = parse_var_decl(dt, identifier, false);
 		consume_right_bracket();
+	}
+	else if (match_keyword("struct")) {
+		error_at_previous("cannot define a type inside a function-scope; "
+						 "did you miss a ']'?");
+		return null;
+	}
+	else if (match_keyword("define")) {
+		error_at_previous("cannot define a function inside a function-scope; "
+						 "did you miss a ']'?");
+		return null;
 	}
 	else {
 		goto_previous_token();
@@ -214,9 +230,9 @@ static Stmt* parse_func(DataType* d, Token* t) {
 	return new;
 }
 
-static Stmt* parse_var_decl(DataType* d, Token* t) {
+static Stmt* parse_var_decl(DataType* d, Token* t, bool is_global_var) {
 	Expr* init = null;
-	if (match_token_type(TOKEN_EQUAL)) {
+	if (!match_token_type(TOKEN_RIGHT_BRACKET)) {
 		init = parse_expr();
 	}
 
@@ -225,6 +241,7 @@ static Stmt* parse_var_decl(DataType* d, Token* t) {
 	new->var_decl.type = d;
 	new->var_decl.identifier = t;
 	new->var_decl.initializer = init;
+	new->var_decl.is_global_var = is_global_var;
 	return new;
 }
 
@@ -459,6 +476,13 @@ static void error_at_current(const char* msg, ...) {
 	va_list ap;
 	va_start(ap, msg);
 	error(current(), msg, ap);
+	va_end(ap);
+}
+
+static void error_at_previous(const char* msg, ...) {
+	va_list ap;
+	va_start(ap, msg);
+	error(previous(), msg, ap);
 	va_end(ap);
 }
 

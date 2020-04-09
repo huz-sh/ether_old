@@ -110,8 +110,6 @@ static void print_var_decl(Stmt* stmt) {
 	print_token(stmt->var_decl.identifier);
 	if (stmt->var_decl.initializer) {
 		print_space();
-		print_equal();
-		print_space();
 		print_expr(stmt->var_decl.initializer);
 	}
 }
