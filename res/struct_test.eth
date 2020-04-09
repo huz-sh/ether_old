@@ -9,7 +9,7 @@
 
 [define console:console_create [uint:x uint:y]
 	[let console*:c null]
-	[set c [linux_console_create x y]]
+	[set c [linux_console_create x y]]]
 
 [struct console
 	[uint: x]

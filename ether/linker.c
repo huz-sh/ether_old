@@ -133,8 +133,8 @@ static void check_file(Stmt** stmts) {
 
 static void check_stmt(Stmt* stmt) {
 	switch (stmt->type) {
-		case STMT_STRUCT:   check_struct(stmt); break;
-		case STMT_FUNC:     check_func(stmt); break;
+		case STMT_STRUCT: check_struct(stmt); break;
+		case STMT_FUNC: check_func(stmt); break;
 		case STMT_VAR_DECL: {
 			if (stmt->var_decl.is_global_var) {
 				check_global_var_decl(stmt);
@@ -155,6 +155,7 @@ static void check_struct(Stmt* stmt) {
 
 static void check_func(Stmt* stmt) {
 	check_data_type(stmt->func.type);
+	/* TODO: add parameters to scope */
 	Scope* scope = make_scope(current_scope);
 	current_scope = global_scope;
 	for (u64 i = 0; i < buf_len(stmt->func.body); ++i) {

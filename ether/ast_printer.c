@@ -71,6 +71,7 @@ static void print_struct(Stmt* stmt) {
 }
 
 static void print_func(Stmt* stmt) {
+	print_string("define ");
 	print_data_type(stmt->func.type);
 	print_colon();
 	print_space();
