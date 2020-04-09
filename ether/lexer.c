@@ -149,8 +149,7 @@ static void lex_number(void) {
 			after_dot = true;
 		}
 		if (!after_dot) {
-			error_at_current("expected digit after '.' \
-							  in floating-point number");
+			error_at_current("expected digit after '.' in floating-point number");
 		}
 	}
 
@@ -162,6 +161,9 @@ static void lex_string(void) {
 	++start;
 	++cur;
 	while ((*cur) != '"') {
+		if (*cur == '\0') {
+			error_at_current("missing terminating '\"'");
+		}
 		++cur;
 	}
 	--cur;

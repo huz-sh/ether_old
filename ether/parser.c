@@ -245,8 +245,9 @@ static Expr* parse_primary_expr(void) {
 		return parse_func_call_expr();
 	}
 	else {
-		error_at_current("invalid syntax; expected identifier, \
-				literal, or grouping but got '%s'", current()->lexeme);
+		error_at_current("invalid syntax; expected identifier, "
+		 				 "literal, or grouping but got '%s'",
+						 current()->lexeme);
 	}
 	return null;
 }
@@ -279,8 +280,11 @@ static Expr* parse_func_call_expr(void) {
 	Expr** args = null;
 	if (!match_right_bracket()) {
 		do {
+			CUR_ERROR;
 			Expr* e = parse_expr();
 			if (e) buf_push(args, e);
+			CHECK_EOF(null);
+			EXIT_ERROR null;
 		} while (!match_right_bracket());
 	}
 

@@ -6,6 +6,7 @@ static Stmt*** stmts_all;
 static SourceFile* current_file;
 static Stmt** defined_structs;
 static Stmt** defined_functions;
+static bool main_func_found;
 static Scope* global_scope;
 static Scope* current_scope;
 static Scope** all_scopes;
@@ -23,12 +24,13 @@ static Scope* make_scope(Scope*);
 
 static void error(Token*, const char*, ...);
 static void note(Token*, const char*, ...);
+static void error_without_info(const char*, ...);
 
 void linker_init(SourceFile* files, Stmt*** stmts_buf) {
 	srcfiles = files;
 	stmts_all = stmts_buf;
 	assert(buf_len(srcfiles) == buf_len(stmts_all));
-
+	main_func_found = false;
 	all_scopes = null;
 	global_scope = make_scope(null);
 	current_scope = global_scope;
@@ -40,6 +42,11 @@ error_code linker_run(void) {
 	for (u64 file = 0; file < buf_len(srcfiles); ++file) {
 		current_file = &(srcfiles[file]);
 		link_file(stmts_all[file]);		
+	}
+	if (!main_func_found) {
+		error_without_info("'main' symbol not found; did you forget to define 'main'?");
+		linker_destroy();
+		return error_occured;
 	}
 	
 	linker_destroy();
@@ -95,6 +102,10 @@ static void add_decl_stmt(Stmt* stmt) {
 					 defined_functions[i]->func.identifier->lexeme);
 				return;
 			}
+		}
+		if (str_intern(stmt->func.identifier->lexeme) ==
+			str_intern("main")) {
+			main_func_found = true;
 		}
 		buf_push(defined_functions, stmt);
 	}
@@ -161,4 +172,16 @@ static void note(Token* token, const char* fmt, ...) {
 
 	print_file_line_with_info(*current_file, token->line);
 	print_marker_arrow_with_info_ln(*current_file, token->line, token->column);	
+}
+
+static void error_without_info(const char* fmt, ...) {
+	va_list ap;
+	va_start(ap, fmt);
+	printf("error: ");
+	vprintf(fmt, ap);
+	va_end(ap);
+	printf("\n");
+
+	error_occured = ETHER_ERROR;
+	++error_count;	
 }

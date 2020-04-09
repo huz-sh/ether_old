@@ -4,20 +4,14 @@
 
 [let u32:hello = 321]
 
+[int: main [void]
+    [console_create]]
+
 [console: console_create [uint:x uint:y]
 	[let console*:c = null]
     [set c [linux_console_create x y]]]
 
-[int: console_create [void]]
-
 [struct console
 	[uint: x]
 	[uint: y]
 	[platform_data: data]]
-
-[struct console
-	[uint: x]
-	[uint: y]
-	[platform_data: data]]
-
-[let char:hello]
