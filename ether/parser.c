@@ -51,6 +51,8 @@ static Token* previous(void);
 
 static void error_at_current(const char*, ...);
 static void error(Token*, const char*, ...);
+static void warning_at_previous(const char*, ...);
+static void warning(Token*, const char*, ...);
 static void sync_to_next_statement(void);
 
 #define CUR_ERROR uint current_error_count = error_count
@@ -174,7 +176,13 @@ static Stmt* parse_func(DataType* d, Token* t) {
 	if (match_keyword("void")) {
 		consume_right_bracket();
 	}
-	else if (!match_right_bracket()) {
+	else if (peek(TOKEN_RIGHT_BRACKET)) {
+		/* we call warning at 'previous' because we want to
+		 * mark the left bracket as the cause */
+		warning_at_previous("empty function parameter list here:");
+		goto_next_token();
+	}
+	else {
 		do {
 			CUR_ERROR;
 			DataType* p_type = consume_data_type();
@@ -474,6 +482,25 @@ static void error(Token* t, const char* msg, ...) {
 
 	error_occured = ETHER_ERROR;
 	++error_count;
+}
+
+static void warning_at_previous(const char* msg, ...) {
+	va_list ap;
+	va_start(ap, msg);
+	warning(previous(), msg, ap);
+	va_end(ap);
+}
+
+static void warning(Token* t, const char* msg, ...) {
+	va_list ap;
+	va_start(ap, msg);
+	printf("%s:%ld:%d: warning: ", srcfile.fpath, t->line, t->column);
+	vprintf(msg, ap);
+	va_end(ap);
+	printf("\n");
+
+	print_file_line_with_info(srcfile, t->line);
+	print_marker_arrow_with_info_ln(srcfile, t->line, t->column);	
 }
 
 static void sync_to_next_statement(void) {

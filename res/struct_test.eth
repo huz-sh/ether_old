@@ -4,7 +4,7 @@
 
 [let u32:hello = 321]
 
-[int: main [void]
+[int: main []
     [console_create]]
 
 [console: console_create [uint:x uint:y]
