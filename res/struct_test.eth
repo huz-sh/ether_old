@@ -2,10 +2,22 @@
 ;; do not adhere to the semantics, as it may
 ;; change during development.
 
+[let u32:hello = 321]
+
 [console: console_create [uint:x uint:y]
-	[let console:c = [linux_console_create x y]]]
+	[let console*:c = null]
+    [set c [linux_console_create x y]]]
+
+[int: console_create [void]]
 
 [struct console
 	[uint: x]
 	[uint: y]
 	[platform_data: data]]
+
+[struct console
+	[uint: x]
+	[uint: y]
+	[platform_data: data]]
+
+[let char:hello]
