@@ -10,16 +10,14 @@ int main(int argc, char** argv) {
 		ether_error("no input files supplied");
 	}
 
-	SourceFile* srcfiles = null;
 	Stmt*** stmts_buf = null;
 	
 	/* TODO: check if we have to free this pointer.
 	 * is it expensive to keep it around? */
-	SourceFile srcfile = ether_read_file(argv[1]);
-	if (!srcfile.contents) {
+	SourceFile* srcfile = ether_read_file(argv[1]);
+	if (!srcfile->contents) {
 		ether_error("%s: no such file or directory", argv[1]);
 	}
-	buf_push(srcfiles, srcfile);
 
 	lexer_init(srcfile);
 	error_code err = false;
@@ -37,7 +35,7 @@ int main(int argc, char** argv) {
 #endif
 
 	err = false;
-	parser_init(srcfile, tokens);
+	parser_init(tokens);
 	Stmt** stmts = parser_run(&err);
 	if (err == ETHER_ERROR) quit();
 	buf_push(stmts_buf, stmts);
@@ -48,7 +46,7 @@ int main(int argc, char** argv) {
 	printf("--- END ---\n");
 #endif
 
-	linker_init(srcfiles, stmts_buf);
+	linker_init(stmts_buf);
 	err = linker_run();
 	if (err == ETHER_ERROR) quit();
 }

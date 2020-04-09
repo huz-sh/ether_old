@@ -1,6 +1,5 @@
 #include <ether/ether.h>
 
-static SourceFile srcfile;
 static Token** tokens;
 static u64 tokens_len;
 static Stmt** stmts;
@@ -64,8 +63,7 @@ if (current()->type == TOKEN_EOF) { \
 	return (x);																\
 }
 
-void parser_init(SourceFile file, Token** tokens_buf) {
-	srcfile = file;
+void parser_init(Token** tokens_buf) {
 	tokens = tokens_buf;
 	tokens_len = buf_len(tokens_buf);
 	idx = 0;
@@ -470,13 +468,13 @@ static void error(Token* t, const char* msg, ...) {
 
 	va_list ap;
 	va_start(ap, msg);
-	printf("%s:%ld:%d: error: ", srcfile.fpath, t->line, t->column);
+	printf("%s:%ld:%d: error: ", t->srcfile->fpath, t->line, t->column);
 	vprintf(msg, ap);
 	va_end(ap);
 	printf("\n");
 
-	print_file_line_with_info(srcfile, t->line);
-	print_marker_arrow_with_info_ln(srcfile, t->line, t->column);
+	print_file_line_with_info(t->srcfile, t->line);
+	print_marker_arrow_with_info_ln(t->srcfile, t->line, t->column);
 
 	sync_to_next_statement();
 
@@ -494,13 +492,13 @@ static void warning_at_previous(const char* msg, ...) {
 static void warning(Token* t, const char* msg, ...) {
 	va_list ap;
 	va_start(ap, msg);
-	printf("%s:%ld:%d: warning: ", srcfile.fpath, t->line, t->column);
+	printf("%s:%ld:%d: warning: ", t->srcfile->fpath, t->line, t->column);
 	vprintf(msg, ap);
 	va_end(ap);
 	printf("\n");
 
-	print_file_line_with_info(srcfile, t->line);
-	print_marker_arrow_with_info_ln(srcfile, t->line, t->column);	
+	print_file_line_with_info(t->srcfile, t->line);
+	print_marker_arrow_with_info_ln(t->srcfile, t->line, t->column);	
 }
 
 static void sync_to_next_statement(void) {

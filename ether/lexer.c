@@ -1,6 +1,6 @@
 #include <ether/ether.h>
 
-static SourceFile srcfile;
+static SourceFile* srcfile;
 static Token** tokens;
 static char** keywords;
 
@@ -28,15 +28,15 @@ static bool is_at_end(void);
 static u32 get_column(void);
 static void error_at_current(const char*, ...);
 
-void lexer_init(SourceFile src) {
+void lexer_init(SourceFile* src) {
 	srcfile = src;
 	tokens = null;
-	start = srcfile.contents;
-	cur = srcfile.contents;
+	start = srcfile->contents;
+	cur = srcfile->contents;
 	line = 1;
 	error_count = 0;
 	error_occured = false;
-	last_newline = srcfile.contents;
+	last_newline = srcfile->contents;
 	last_to_last_newline = null;
 
 	buf_push(keywords, str_intern("struct"));
@@ -50,7 +50,7 @@ void lexer_init(SourceFile src) {
 }
 
 Token** lexer_run(error_code* out_error_code) {
-	for (cur = srcfile.contents; cur != (srcfile.contents + srcfile.len);) {
+	for (cur = srcfile->contents; cur != (srcfile->contents + srcfile->len);) {
 		start = cur;
 		switch (*cur) {
 			case ':': add_token(TOKEN_COLON); break;
@@ -131,6 +131,7 @@ static void lex_identifier(void) {
 	Token* new = (Token*)malloc(sizeof(Token));
 	new->type = is_keyword ? TOKEN_KEYWORD : TOKEN_IDENTIFIER;
 	new->lexeme = keyword;
+	new->srcfile = srcfile;
 	new->line = line;
 	new->column = get_column();
 	buf_push(tokens, new);
@@ -188,6 +189,7 @@ static void add_token(TokenType type) {
 	Token* new = (Token*)malloc(sizeof(Token));
 	new->type = type;
 	new->lexeme = str_intern_range(start, ++cur);
+	new->srcfile = srcfile;
 	new->line = line;
 	new->column = get_column();
 	buf_push(tokens, new);
@@ -204,6 +206,7 @@ static void add_eof(void) {
 	Token* t = (Token*)malloc(sizeof(Token));
 	t->type = TOKEN_EOF;
 	t->lexeme = "";
+	t->srcfile = srcfile;
 	t->line = eof_line;
 	if (newline) t->column = cur - last_to_last_newline - 1;
 	else t->column = cur - last_newline;
@@ -221,7 +224,7 @@ static bool match_char(char c) {
 }
 
 static bool is_at_end(void) {
-	if (cur >= (srcfile.contents + srcfile.len)) {
+	if (cur >= (srcfile->contents + srcfile->len)) {
 		return true;
 	}
 	return false;
@@ -237,7 +240,7 @@ static void error_at_current(const char* msg, ...) {
 	u32 column = get_column();
 	va_list ap;
 	va_start(ap, msg);
-	printf("%s:%ld:%d: error: ", srcfile.fpath, line, column);
+	printf("%s:%ld:%d: error: ", srcfile->fpath, line, column);
 	vprintf(msg, ap);
 	printf("\n");
 	va_end(ap);

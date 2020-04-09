@@ -15,3 +15,6 @@
 	[uint: x]
 	[uint: y]
 	[platform_data: data]]
+
+[struct uint]
+[struct platform_data]

@@ -65,14 +65,14 @@ typedef struct {
 	uint len;
 } SourceFile;
 
-SourceFile ether_read_file(char* fpath);
-char* get_line_at(SourceFile file, u64 line);
+SourceFile* ether_read_file(char* fpath);
+char* get_line_at(SourceFile* file, u64 line);
 
-error_code print_file_line(SourceFile file, u64 line);
-error_code print_file_line_with_info(SourceFile file, u64 line);
+error_code print_file_line(SourceFile* file, u64 line);
+error_code print_file_line_with_info(SourceFile* file, u64 line);
 
-error_code print_marker_arrow_ln(SourceFile file, u64 line, u32 column);
-error_code print_marker_arrow_with_info_ln(SourceFile file,
+error_code print_marker_arrow_ln(SourceFile* file, u64 line, u32 column);
+error_code print_marker_arrow_with_info_ln(SourceFile* file,
 										   u64 line, u32 column);
 
 void ether_error(const char* fmt, ...);
@@ -114,11 +114,12 @@ typedef enum {
 typedef struct {
 	TokenType type;
 	char* lexeme;
+	SourceFile* srcfile;
 	u64 line;
 	u32 column;
 } Token;
 
-void lexer_init(SourceFile file);
+void lexer_init(SourceFile* file);
 Token** lexer_run(error_code* out_error_code);
 
 typedef enum {
@@ -195,7 +196,7 @@ struct Stmt {
 	};
 };
 
-void parser_init(SourceFile file, Token** tokens_buf);
+void parser_init(Token** tokens_buf);
 Stmt** parser_run(error_code* out_error_code);
 
 #ifdef _DEBUG
@@ -211,7 +212,7 @@ typedef struct Scope {
 	struct Scope* parent_scope;
 } Scope;
 
-void linker_init(SourceFile* files, Stmt*** stmts_buf);
+void linker_init(Stmt*** stmts_buf);
 error_code linker_run(void);
 
 #endif
