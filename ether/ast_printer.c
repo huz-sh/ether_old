@@ -78,12 +78,12 @@ static void print_func(Stmt* stmt) {
 	print_space();
 
 	print_left_bracket();
-	Param** p = stmt->func.params;
+	Stmt** p = stmt->func.params;
 	u64 params_len = buf_len(stmt->func.params);
 	for (u64 i = 0; i < params_len; ++i) {
-		print_data_type(p[i]->type);
+		print_data_type(p[i]->var_decl.type);
 		print_colon();
-		print_token(p[i]->identifier);
+		print_token(p[i]->var_decl.identifier);
 
 		if (i < params_len - 1) {
 			print_space();

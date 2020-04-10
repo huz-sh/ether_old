@@ -184,7 +184,7 @@ static Stmt* parse_struct(Token* identifier) {
 }
 
 static Stmt* parse_func(DataType* d, Token* t) {
-	Param** params = null;
+	Stmt** params = null;
 	if (match_keyword("void")) {
 		consume_right_bracket();
 	}
@@ -201,10 +201,14 @@ static Stmt* parse_func(DataType* d, Token* t) {
 			consume_colon();
 			Token* p_name = consume_identifier();
 
-			Param* param = (Param*)malloc(sizeof(Param));
-			param->type = p_type;
-			param->identifier = p_name;
+			MAKE_STMT(param);
+			param->type = STMT_VAR_DECL;
+			param->var_decl.type = p_type;
+			param->var_decl.identifier = p_name;
+			param->var_decl.initializer = null;
+			param->var_decl.is_global_var = false;
 			buf_push(params, param);
+			
 			EXIT_ERROR null;
 			CHECK_EOF(null);
 		} while (!match_right_bracket());

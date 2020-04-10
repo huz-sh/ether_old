@@ -172,12 +172,7 @@ typedef struct {
 typedef struct {
 	DataType* type;
 	Token* identifier;
-} Param;
-
-typedef struct {
-	DataType* type;
-	Token* identifier;
-	Param** params;
+	Stmt** params; /* param is a statement to make it easier to add to scope */
 	Stmt** body;
 } Func;
 

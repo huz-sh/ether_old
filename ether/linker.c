@@ -163,9 +163,15 @@ static void check_struct(Stmt* stmt) {
 
 static void check_func(Stmt* stmt) {
 	check_data_type(stmt->func.type);
-	/* TODO: add parameters to scope */
 	Scope* scope = make_scope(current_scope);
-	current_scope = global_scope;
+	current_scope = scope;
+
+	for (u64 param = 0; param < buf_len(stmt->func.params); ++param) {
+		if (!is_variable_declared(stmt->func.params[param])) {
+			add_variable_to_scope(stmt->func.params[param]);
+		}
+	}
+	
 	for (u64 i = 0; i < buf_len(stmt->func.body); ++i) {
 		check_stmt(stmt->func.body[i]);
 	}
@@ -246,7 +252,7 @@ static void check_func_call(Expr* expr) {
 			  expr->func_call.callee->lexeme,
 			  expr->func_call.callee->lexeme);
 		return;
-	}
+	} 
 	
 	else if (expr->func_call.callee->type == TOKEN_KEYWORD) {
 		if (str_intern(expr->func_call.callee->lexeme) ==
