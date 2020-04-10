@@ -183,12 +183,24 @@ typedef struct {
 	bool is_global_var;
 } VarDecl;
 
+typedef struct {
+	Expr* cond;
+	Stmt** body;
+} IfBranch;
+
+typedef struct {
+	IfBranch* if_branch;
+	IfBranch** else_if_branch;
+	IfBranch* else_branch;
+} If;
+
 struct Stmt {
 	StmtType type;
 	union {
 		Struct struct_stmt;
 		Func func;
 		VarDecl var_decl;
+		If if_stmt;
 		Expr* expr;
 	};
 };
