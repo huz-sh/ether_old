@@ -12,17 +12,17 @@
 	[if [= var 2]
 		[set var 3]]
 	[elif [= var 5]
-		[set var 10]]
+		[set c 10]]
 	[else
-		[set var 2]]]
+		[set c 2]]]
 
 [define console:console_create [uint:x uint:y]
 	[set c [linux_console_create x y]]]
 
 [struct console
-	[uint: x]
-	[uint: y]
-	[platform_data: data]]
+	[uint:x]
+	[uint:y]
+	[platform_data:data]]
 
 [struct uint]
 [struct u32]

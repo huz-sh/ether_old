@@ -22,6 +22,8 @@ static void check_struct(Stmt*);
 static void check_func(Stmt*);
 static void check_global_var_decl(Stmt*);
 static void check_var_decl(Stmt*);
+static void check_if_stmt(Stmt*);
+static void check_if_branch(IfBranch*, IfBranchType);
 static void check_expr_stmt(Stmt*);
 static void check_expr(Expr*);
 static void check_func_call(Expr*);
@@ -38,6 +40,13 @@ static void add_variable_to_scope(Stmt*);
 static void error(Token*, const char*, ...);
 static void note(Token*, const char*, ...);
 static void error_without_info(const char*, ...);
+
+#define CHANGE_SCOPE(x) \
+	Scope* x = make_scope(current_scope); \
+	current_scope = x;
+
+#define REVERT_SCOPE(x) \
+	current_scope = x->parent_scope;
 
 void linker_init(Stmt*** stmts_buf) {
 	stmts_all = stmts_buf;
@@ -149,7 +158,8 @@ static void check_stmt(Stmt* stmt) {
 				check_var_decl(stmt);
 			}
 		} break;
-		case STMT_EXPR: check_expr_stmt(stmt);
+		case STMT_IF: check_if_stmt(stmt); break;
+		case STMT_EXPR: check_expr_stmt(stmt); break;
 	}
 }
 
@@ -162,8 +172,7 @@ static void check_struct(Stmt* stmt) {
 
 static void check_func(Stmt* stmt) {
 	check_data_type(stmt->func.type);
-	Scope* scope = make_scope(current_scope);
-	current_scope = scope;
+	CHANGE_SCOPE(scope);
 
 	for (u64 param = 0; param < buf_len(stmt->func.params); ++param) {
 		if (!is_variable_declared(stmt->func.params[param])) {
@@ -174,7 +183,7 @@ static void check_func(Stmt* stmt) {
 	for (u64 i = 0; i < buf_len(stmt->func.body); ++i) {
 		check_stmt(stmt->func.body[i]);
 	}
-	current_scope = scope->parent_scope;
+	REVERT_SCOPE(scope);
 }
 
 static void check_global_var_decl(Stmt* stmt) {
@@ -201,6 +210,30 @@ static void check_var_decl(Stmt* stmt) {
 	}
 }
 
+static void check_if_stmt(Stmt* stmt) {
+	check_if_branch(stmt->if_stmt.if_branch, IF_IF_BRANCH);
+
+	for (u64 i = 0; i < buf_len(stmt->if_stmt.elif_branch); ++i) {
+		check_if_branch(stmt->if_stmt.elif_branch[i], IF_ELIF_BRANCH);
+	}
+
+	if (stmt->if_stmt.else_branch) {
+		check_if_branch(stmt->if_stmt.else_branch, IF_ELSE_BRANCH);
+	}
+}
+
+static void check_if_branch(IfBranch* branch, IfBranchType type) {
+	if (type != IF_ELSE_BRANCH) {
+		check_expr(branch->cond);
+	}
+
+	CHANGE_SCOPE(scope);
+	for (u64 i = 0; i < buf_len(branch->body); ++i) {
+		check_stmt(branch->body[i]);
+	}
+	REVERT_SCOPE(scope);		
+}
+
 static void check_expr_stmt(Stmt* stmt) {
 	check_expr(stmt->expr);
 }
@@ -209,6 +242,7 @@ static void check_expr(Expr* expr) {
 	switch (expr->type) {
 		case EXPR_FUNC_CALL: check_func_call(expr); break;
 		case EXPR_VARIABLE: check_variable_expr(expr); break;
+		case EXPR_NUMBER: break;	
 	}
 }
 
@@ -276,6 +310,12 @@ static void check_func_call(Expr* expr) {
 
 			check_if_variable_is_in_scope(expr->func_call.args[0]);
 			check_expr(expr->func_call.args[1]);
+		}
+	}
+
+	else {
+		for (u64 i = 0; i < buf_len(expr->func_call.args); ++i) {
+			check_expr(expr->func_call.args[i]);
 		}
 	}
 }
