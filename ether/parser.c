@@ -51,7 +51,6 @@ static Token* current(void);
 static Token* previous(void);
 
 static void error_at_current(const char*, ...);
-static void error_at_previous(const char*, ...);
 static void error(Token*, const char*, ...);
 static void warning_at_previous(const char*, ...);
 static void warning(Token*, const char*, ...);
@@ -150,14 +149,19 @@ static Stmt* parse_stmt(void) {
 	else if (match_keyword("if")) {
 		stmt = parse_if_stmt();
 	}
+	else if (match_keyword("elif") || match_keyword("else")) {
+		error(previous(), "'%s' branch without preceding 'if' statement; "
+						  "did you mean 'if'?", previous()->lexeme);
+		return null;
+	}
 	else if (match_keyword("struct")) {
-		error_at_previous("cannot define a type inside a function-scope; "
-						 "did you miss a ']'?");
+		error(previous(), "cannot define a type inside a function-scope; "
+						  "did you miss a ']'?");
 		return null;
 	}
 	else if (match_keyword("define")) {
-		error_at_previous("cannot define a function inside a function-scope; "
-						 "did you miss a ']'?");
+		error(previous(), "cannot define a function inside a function-scope; "
+						  "did you miss a ']'?");
 		return null;
 	}
 	else {
@@ -565,13 +569,6 @@ static void error_at_current(const char* msg, ...) {
 	va_end(ap);
 }
 
-static void error_at_previous(const char* msg, ...) {
-	va_list ap;
-	va_start(ap, msg);
-	error(previous(), msg, ap);
-	va_end(ap);
-}
-
 static void error(Token* t, const char* msg, ...) {
 	if (error_panic) return;
 	error_panic = true;
@@ -579,7 +576,9 @@ static void error(Token* t, const char* msg, ...) {
 	va_list ap;
 	va_start(ap, msg);
 	printf("%s:%ld:%d: error: ", t->srcfile->fpath, t->line, t->column);
-	vprintf(msg, ap);
+	char buf[512];
+	vsprintf(buf, msg, ap);
+	printf("%s", buf);
 	va_end(ap);
 	printf("\n");
 
