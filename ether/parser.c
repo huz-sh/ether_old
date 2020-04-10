@@ -19,6 +19,8 @@ static Stmt* parse_stmt(void);
 static Stmt* parse_struct(Token*);
 static Stmt* parse_func(DataType*, Token*);
 static Stmt* parse_var_decl(DataType*, Token*, bool);
+static Stmt* parse_if_stmt(void);
+static void parse_if_branch(Stmt*, IfBranchType);
 static Stmt* parse_expr_stmt(void);
 
 static Expr* parse_expr(void);
@@ -61,7 +63,13 @@ static void sync_to_next_statement(void);
 #define CHECK_EOF(x) \
 if (current()->type == TOKEN_EOF) { \
 	error_at_current("end of file while parsing function body; did you forget a ']'?"); \
-	return (x);																\
+	return (x); \
+}
+
+#define CHECK_EOF_VOID_RETURN \
+if (current()->type == TOKEN_EOF) { \
+	error_at_current("end of file while parsing function body; did you forget a ']'?"); \
+	return; \
 }
 
 void parser_init(Token** tokens_buf) {
@@ -97,19 +105,21 @@ void parser_destroy(void) {
 static Stmt* parse_decl(void) {
 	consume_left_bracket();
 
+	/* TODO: parser necessary data types and identifiers in functions 
+	 * and leave this clean */
 	Stmt* stmt = null;
 	if (match_keyword("struct")) {
-		Token* identifier = consume_identifier();
+		Token* identifier = consume_identifier(); /* TODO: to refactor */
 		stmt = parse_struct(identifier);
 	}
 	else if (match_keyword("let")) {
-		DataType* type = consume_data_type();
+		DataType* type = consume_data_type(); /* TODO: to refactor */
 		consume_colon();
 		Token* identifier = consume_identifier();
 		stmt = parse_var_decl(type, identifier, true);
 	}
 	else if (match_keyword("define")) {
-		DataType* type = consume_data_type();
+		DataType* type = consume_data_type(); /* TODO: to refactor */
 		consume_colon();
 		Token* identifier = consume_identifier();
 		consume_left_bracket();
@@ -136,6 +146,9 @@ static Stmt* parse_stmt(void) {
 		consume_colon();
 		Token* identifier = consume_identifier();
 		stmt = parse_var_decl(dt, identifier, false);
+	}
+	else if (match_keyword("if")) {
+		stmt = parse_if_stmt();
 	}
 	else if (match_keyword("struct")) {
 		error_at_previous("cannot define a type inside a function-scope; "
@@ -246,6 +259,73 @@ static Stmt* parse_var_decl(DataType* d, Token* t, bool is_global_var) {
 	new->var_decl.initializer = init;
 	new->var_decl.is_global_var = is_global_var;
 	return new;
+}
+
+static Stmt* parse_if_stmt(void) {
+	MAKE_STMT(new);
+	new->type = STMT_IF;
+	
+	parse_if_branch(new, IF_IF_BRANCH);
+
+	for (;;) {
+		if (tokens[idx]->type == TOKEN_LEFT_BRACKET) {
+			if ((idx+1) < tokens_len && tokens[idx+1]->type == TOKEN_KEYWORD) {
+				if (str_intern(tokens[idx+1]->lexeme) ==
+					str_intern("elif")) {
+					goto_next_token();
+					goto_next_token();
+					parse_if_branch(new, IF_ELIF_BRANCH);
+				} else break;
+			} else break;
+		} else break;
+	}
+	
+	if (tokens[idx]->type == TOKEN_LEFT_BRACKET) {
+		if ((idx+1) < tokens_len && tokens[idx+1]->type == TOKEN_KEYWORD) {
+			if (str_intern(tokens[idx+1]->lexeme) ==
+				str_intern("else")) {
+				goto_next_token();
+				goto_next_token();
+				parse_if_branch(new, IF_ELSE_BRANCH);
+			}
+		}
+	}
+
+	return new;
+}
+
+static void parse_if_branch(Stmt* if_stmt, IfBranchType type) {
+	Expr* cond = null;
+	if (type != IF_ELSE_BRANCH) {
+		cond = parse_expr();
+	}
+
+	Stmt** body = null;
+	while (!match_right_bracket()) {
+		CUR_ERROR;
+		Stmt* stmt = parse_stmt();
+		if (stmt) buf_push(body, stmt);
+		EXIT_ERROR;
+		CHECK_EOF_VOID_RETURN;
+	}
+
+	IfBranch* branch = (IfBranch*)malloc(sizeof(IfBranch));
+	branch->cond = cond;
+	branch->body = body;
+
+	switch (type) {
+		case IF_IF_BRANCH: {
+			if_stmt->if_stmt.if_branch = branch;
+		} break;
+
+		case IF_ELIF_BRANCH: {
+			buf_push(if_stmt->if_stmt.elif_branch, branch);
+		} break;
+
+		case IF_ELSE_BRANCH: {
+			if_stmt->if_stmt.else_branch = branch;
+		} break;
+	}
 }
 
 static Stmt* parse_expr_stmt(void) {

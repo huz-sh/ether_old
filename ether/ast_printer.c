@@ -7,6 +7,8 @@ static void print_stmt_with_newline(Stmt*);
 static void print_struct(Stmt*);
 static void print_func(Stmt*);
 static void print_var_decl(Stmt*);
+static void print_if_stmt(Stmt*);
+static void print_if_branch(IfBranch*, IfBranchType);
 static void print_expr_stmt(Stmt*);
 
 static void print_expr(Expr*);
@@ -37,15 +39,18 @@ void print_ast_debug(Stmt** stmts) {
 }
 
 static void print_stmt(Stmt* stmt) {
-	print_tabs_by_indentation();
-	if (stmt->type != STMT_EXPR) print_left_bracket();
+	if (stmt->type != STMT_IF) print_tabs_by_indentation();
+	if (stmt->type != STMT_EXPR &&
+		stmt->type != STMT_IF)		print_left_bracket();
 	switch (stmt->type) {
 		case STMT_STRUCT:	print_struct(stmt); break;
-		case STMT_FUNC:			print_func(stmt); break;
+		case STMT_FUNC:		print_func(stmt); break;
 		case STMT_VAR_DECL: print_var_decl(stmt); break;
-		case STMT_EXPR:			print_expr_stmt(stmt); break;
+		case STMT_IF:		print_if_stmt(stmt); break;
+		case STMT_EXPR:		print_expr_stmt(stmt); break;
 	}
-	if (stmt->type != STMT_EXPR) print_right_bracket();
+	if (stmt->type != STMT_EXPR &&
+		stmt->type != STMT_IF)		print_right_bracket();
 }
 
 static void print_stmt_with_newline(Stmt* stmt) {
@@ -112,6 +117,43 @@ static void print_var_decl(Stmt* stmt) {
 		print_space();
 		print_expr(stmt->var_decl.initializer);
 	}
+}
+
+static void print_if_stmt(Stmt* stmt) {
+	print_if_branch(stmt->if_stmt.if_branch, IF_IF_BRANCH);
+
+	for (u64 i = 0; i < buf_len(stmt->if_stmt.elif_branch); ++i) {
+		print_if_branch(stmt->if_stmt.elif_branch[i], IF_ELIF_BRANCH);
+	}
+	
+	if (stmt->if_stmt.else_branch) {
+		print_if_branch(stmt->if_stmt.else_branch, IF_ELSE_BRANCH);
+	}
+}
+
+static void print_if_branch(IfBranch* branch, IfBranchType type) {
+	print_tabs_by_indentation();
+	print_left_bracket();
+	print_string(type == IF_IF_BRANCH ?
+						 "if " : (type == IF_ELIF_BRANCH ?
+						 "elif " :
+						 "else "));
+	Expr* cond = branch->cond;
+	if (cond != null) print_expr(cond);
+	print_newline();
+	
+	tab_count++;
+	Stmt** body = branch->body;
+	u64 body_len = buf_len(body);
+	for (u64 i = 0; i < body_len; ++i) {
+		print_stmt(body[i]);
+		if (i < (body_len - 1)) {
+			print_newline();
+		}
+	}
+	tab_count--;
+	print_right_bracket();
+	print_newline();
 }
 
 static void print_expr_stmt(Stmt* stmt) {

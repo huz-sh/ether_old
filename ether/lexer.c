@@ -42,7 +42,9 @@ void lexer_init(SourceFile* src) {
 	buf_push(keywords, str_intern("struct"));
 	buf_push(keywords, str_intern("define"));	
 	buf_push(keywords, str_intern("let"));
-	buf_push(keywords, str_intern("deploy"));
+	buf_push(keywords, str_intern("if"));
+	buf_push(keywords, str_intern("elif"));
+	buf_push(keywords, str_intern("else"));	
 	buf_push(keywords, str_intern("set"));
 
 	buf_push(keywords, str_intern("int"));

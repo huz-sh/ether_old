@@ -156,6 +156,7 @@ typedef enum {
 	STMT_STRUCT,
 	STMT_FUNC,
 	STMT_VAR_DECL,
+	STMT_IF,
 	STMT_EXPR,
 } StmtType;
 
@@ -183,6 +184,12 @@ typedef struct {
 	bool is_global_var;
 } VarDecl;
 
+typedef enum {
+	IF_IF_BRANCH,
+	IF_ELIF_BRANCH,
+	IF_ELSE_BRANCH
+} IfBranchType;
+
 typedef struct {
 	Expr* cond;
 	Stmt** body;
@@ -190,7 +197,7 @@ typedef struct {
 
 typedef struct {
 	IfBranch* if_branch;
-	IfBranch** else_if_branch;
+	IfBranch** elif_branch;
 	IfBranch* else_branch;
 } If;
 

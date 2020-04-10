@@ -7,7 +7,14 @@
 
 [define int:main [void]
 	[let int:var 2]
-	[console_create 1 2]]
+	[console_create 1 2]
+	
+	[if [= var 2]
+		[set var 3]]
+	[elif [= var 5]
+		[set var 10]]
+	[else
+		[set var 2]]]
 
 [define console:console_create [uint:x uint:y]
 	[set c [linux_console_create x y]]]
