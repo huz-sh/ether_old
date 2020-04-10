@@ -107,7 +107,6 @@ static Stmt* parse_decl(void) {
 		consume_colon();
 		Token* identifier = consume_identifier();
 		stmt = parse_var_decl(type, identifier, true);
-		consume_right_bracket();
 	}
 	else if (match_keyword("define")) {
 		DataType* type = consume_data_type();
@@ -137,7 +136,6 @@ static Stmt* parse_stmt(void) {
 		consume_colon();
 		Token* identifier = consume_identifier();
 		stmt = parse_var_decl(dt, identifier, false);
-		consume_right_bracket();
 	}
 	else if (match_keyword("struct")) {
 		error_at_previous("cannot define a type inside a function-scope; "
@@ -234,6 +232,7 @@ static Stmt* parse_var_decl(DataType* d, Token* t, bool is_global_var) {
 	Expr* init = null;
 	if (!match_token_type(TOKEN_RIGHT_BRACKET)) {
 		init = parse_expr();
+		consume_right_bracket();
 	}
 
 	MAKE_STMT(new);
@@ -319,6 +318,7 @@ static Expr* parse_func_call_expr(void) {
 static Expr* make_number_expr(Token* t) {
 	MAKE_EXPR(new);
 	new->type = EXPR_NUMBER;
+	new->head = t;
 	new->number = t;
 	return new;
 }
@@ -326,6 +326,7 @@ static Expr* make_number_expr(Token* t) {
 static Expr* make_variable_expr(Token* t) {
 	MAKE_EXPR(new);
 	new->type = EXPR_VARIABLE;
+	new->head = t;
 	new->number = t;
 	return new;
 }
@@ -334,6 +335,7 @@ static Expr* make_variable_expr(Token* t) {
 static Expr* make_func_call_expr(Token* callee, Expr** args) {
 	MAKE_EXPR(new);
 	new->type = EXPR_FUNC_CALL;
+	new->head = callee;
 	new->func_call.callee = callee;
 	new->func_call.args = args;
 	return new;

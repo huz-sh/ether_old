@@ -137,6 +137,7 @@ typedef struct {
 
 struct Expr {
 	ExprType type;
+	Token* head;
 	union {
 		FuncCall func_call;
 		Token* number;

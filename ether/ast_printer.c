@@ -74,7 +74,6 @@ static void print_func(Stmt* stmt) {
 	print_string("define ");
 	print_data_type(stmt->func.type);
 	print_colon();
-	print_space();
 	print_token(stmt->func.identifier);
 	print_space();
 

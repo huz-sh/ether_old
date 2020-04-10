@@ -17,15 +17,22 @@ static void link_file(Stmt**);
 static void add_decl_stmt(Stmt*);
 
 static void check_file(Stmt**);
-static void check_stmt(Stmt* stmt);
+static void check_stmt(Stmt*);
 static void check_struct(Stmt*);
 static void check_func(Stmt*);
 static void check_global_var_decl(Stmt*);
 static void check_var_decl(Stmt*);
-static void check_data_type(DataType* data_type);
+static void check_expr_stmt(Stmt*);
+static void check_expr(Expr*);
+static void check_func_call(Expr*);
+static void check_variable_expr(Expr*);
+static void check_number_expr(Expr*);
 
+static void check_data_type(DataType*);
+static void check_if_variable_is_in_scope(Expr*);
 static bool is_variable_declared(Stmt*);
 static bool is_token_identical(Token*, Token*);
+
 static Scope* make_scope(Scope*);
 static void add_variable_to_scope(Stmt*);
 
@@ -143,6 +150,7 @@ static void check_stmt(Stmt* stmt) {
 				check_var_decl(stmt);
 			}
 		} break;
+		case STMT_EXPR: check_expr_stmt(stmt);
 	}
 }
 
@@ -166,15 +174,109 @@ static void check_func(Stmt* stmt) {
 
 static void check_global_var_decl(Stmt* stmt) {
 	check_data_type(stmt->var_decl.type);
-	/* TODO: fill this for initializer */	
+	if (stmt->var_decl.initializer) {
+		/* TODO: add current variable to scope to reference it like this:
+		 * [let int:var [+ var 1]] */
+		check_expr(stmt->var_decl.initializer);
+	}
 }
 
 static void check_var_decl(Stmt* stmt) {
 	check_data_type(stmt->var_decl.type);
+	if (stmt->var_decl.initializer) {
+		/* TODO: add current variable to scope to reference it like this:
+		 * [let int:var [+ var 1]] */
+		check_expr(stmt->var_decl.initializer);
+	}
+
+	/* always remember to add this at the end of check_var_decl,
+	 * not in the middle */
 	if (!is_variable_declared(stmt)) {
 		add_variable_to_scope(stmt);
 	}
-	/* TODO: fill this for initializer */	
+}
+
+static void check_expr_stmt(Stmt* stmt) {
+	check_expr(stmt->expr);
+}
+
+static void check_expr(Expr* expr) {
+	switch (expr->type) {
+		case EXPR_FUNC_CALL: check_func_call(expr); break;
+		case EXPR_VARIABLE: check_variable_expr(expr); break;
+	}
+}
+
+static void check_func_call(Expr* expr) {
+	if (expr->func_call.callee->type == TOKEN_IDENTIFIER) {
+		for (u64 i = 0; i < buf_len(defined_functions); ++i) {
+			if (is_token_identical(expr->func_call.callee,
+								   defined_functions[i]->func.identifier)) {
+				const u64 caller_args_len = buf_len(expr->func_call.args);
+				const u64 callee_params_len = buf_len(defined_functions[i]->func.params);
+				Token* error_token = null;
+
+				if (caller_args_len > callee_params_len) {
+					error_token = expr->func_call.args[callee_params_len]->head;
+				}
+				else if (caller_args_len < callee_params_len) {
+					error_token = expr->head;
+				}
+				
+				if (error_token != null) {
+					error(error_token,
+						  "conflicting argument-length in function call; "
+						  "expected %ld argument(s), but got %ld argument(s);",
+						  callee_params_len, caller_args_len);
+					note(defined_functions[i]->func.identifier,
+						 "callee '%s' defined here:",
+						 defined_functions[i]->func.identifier->lexeme);
+					return;
+				}
+				
+				for (u64 arg = 0; arg < caller_args_len; ++arg) {
+					check_expr(expr->func_call.args[arg]);
+				}
+				return;
+			}
+		}
+
+		error(expr->func_call.callee,
+			  "undefined function '%s'; did you forget to define '%s'?",
+			  expr->func_call.callee->lexeme,
+			  expr->func_call.callee->lexeme);
+		return;
+	}
+	
+	else if (expr->func_call.callee->type == TOKEN_KEYWORD) {
+		if (str_intern(expr->func_call.callee->lexeme) ==
+			str_intern("set")) {
+			u64 args_len = buf_len(expr->func_call.args);
+			Token* error_token = null;
+								  
+			if (args_len > 2) {
+				error_token = expr->func_call.args[2]->head;
+			}
+			else if (args_len < 2) {
+				error_token = expr->head;
+			}
+			
+			if (error_token != null) {
+				/* TODO: change 'set' to a macro */
+				error(error_token,
+					  "built-in function 'set' only accepts 2 arguments, "
+					  "but got %ld argument(s);", args_len);
+				return;
+			}
+
+			check_if_variable_is_in_scope(expr->func_call.args[0]);
+			check_expr(expr->func_call.args[1]);
+		}
+	}
+}
+
+static void check_variable_expr(Expr* expr) {
+	check_if_variable_is_in_scope(expr);
 }
 
 static void check_data_type(DataType* data_type) {
@@ -215,6 +317,23 @@ static bool is_variable_declared(Stmt* var) {
 		scope = scope->parent_scope;
 	}
 	return false;
+}
+
+static void check_if_variable_is_in_scope(Expr* expr) {
+	Scope* scope = current_scope;
+	while (scope != null) {
+		for (u64 i = 0; i < buf_len(scope->variables); ++i) {
+			if (is_token_identical(expr->variable,
+								   scope->variables[i]->var_decl.identifier)) {
+				return;
+			}
+		}
+		scope = scope->parent_scope;
+	}
+
+	error(expr->variable,
+		  "undeclared variable '%s'; did you forget to declare '%s'?",
+		  expr->variable->lexeme, expr->variable->lexeme);
 }
 
 static bool is_token_identical(Token* a, Token* b) {
