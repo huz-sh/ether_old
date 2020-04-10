@@ -26,7 +26,6 @@ static void check_expr_stmt(Stmt*);
 static void check_expr(Expr*);
 static void check_func_call(Expr*);
 static void check_variable_expr(Expr*);
-static void check_number_expr(Expr*);
 
 static void check_data_type(DataType*);
 static void check_if_variable_is_in_scope(Expr*);
