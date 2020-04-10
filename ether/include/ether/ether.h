@@ -119,6 +119,8 @@ typedef struct {
 	u32 column;
 } Token;
 
+bool is_token_identical(Token* a, Token* b);
+
 void lexer_init(SourceFile* file);
 Token** lexer_run(error_code* out_error_code);
 
@@ -129,19 +131,26 @@ typedef enum {
 } ExprType;
 
 typedef struct Expr Expr;
+typedef struct Stmt Stmt;
 
 typedef struct {
 	Token* callee;
 	Expr** args;
+	Stmt* function_called;
 } FuncCall;
+
+typedef struct {
+	Token* identifier;
+	Stmt* variable_decl_referenced;
+} VariableRef;
 
 struct Expr {
 	ExprType type;
 	Token* head;
 	union {
 		FuncCall func_call;
+		VariableRef variable;
 		Token* number;
-		Token* variable;
 	};
 };
 
@@ -149,8 +158,6 @@ typedef struct {
 	Token* type;
 	u8 pointer_count;
 } DataType;
-
-typedef struct Stmt Stmt;
 
 typedef enum {
 	STMT_STRUCT,
@@ -228,7 +235,13 @@ typedef struct Scope {
 	struct Scope* parent_scope;
 } Scope;
 
+void token_error(bool* error_occured, uint* error_count,
+				 Token* t, const char* fmt, ...);
+
 void linker_init(Stmt*** stmts_buf);
 error_code linker_run(void);
+
+void resolve_init(Stmt*** stmts_buf);
+error_code resolve_run(void);
 
 #endif

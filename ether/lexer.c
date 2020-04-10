@@ -200,6 +200,7 @@ static void lex_string(void) {
 
 static void lex_comment(void) {
 	while (*cur != '\n') {
+		if (*cur == '\0') return;
 		++cur;
 	}
 }

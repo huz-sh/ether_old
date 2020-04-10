@@ -49,6 +49,10 @@ int main(int argc, char** argv) {
 	linker_init(stmts_buf);
 	err = linker_run();
 	if (err == ETHER_ERROR) quit();
+
+	resolve_init(stmts_buf);
+	err = resolve_run();
+	if (err == ETHER_ERROR) quit();
 }
 
 inline static void quit(void) {

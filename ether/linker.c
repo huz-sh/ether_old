@@ -1,4 +1,5 @@
 #include <ether/ether.h>
+#include <ether/linker_resolve_common.h>
 
 static Stmt*** stmts_all;
 static Stmt** defined_structs;
@@ -32,12 +33,10 @@ static void check_variable_expr(Expr*);
 static void check_data_type(DataType*);
 static void check_if_variable_is_in_scope(Expr*);
 static bool is_variable_declared(Stmt*);
-static bool is_token_identical(Token*, Token*);
 
 static Scope* make_scope(Scope*);
 static void add_variable_to_scope(Stmt*);
 
-static void error(Token*, const char*, ...);
 static void note(Token*, const char*, ...);
 static void error_without_info(const char*, ...);
 
@@ -368,27 +367,18 @@ static void check_if_variable_is_in_scope(Expr* expr) {
 	Scope* scope = current_scope;
 	while (scope != null) {
 		for (u64 i = 0; i < buf_len(scope->variables); ++i) {
-			if (is_token_identical(expr->variable,
+			if (is_token_identical(expr->variable.identifier,
 								   scope->variables[i]->var_decl.identifier)) {
+				expr->variable.variable_decl_referenced = scope->variables[i];
 				return;
 			}
 		}
 		scope = scope->parent_scope;
 	}
 
-	error(expr->variable,
+	error(expr->variable.identifier,
 		  "undeclared variable '%s'; did you forget to declare '%s'?",
-		  expr->variable->lexeme, expr->variable->lexeme);
-}
-
-static bool is_token_identical(Token* a, Token* b) {
-	assert(a);
-	assert(b);
-
-	if (str_intern(a->lexeme) == str_intern(b->lexeme)) {
-		return true;
-	}
-	return false;
+		  expr->variable.identifier->lexeme, expr->variable.identifier->lexeme);
 }
 
 static Scope* make_scope(Scope* parent_scope) {
@@ -401,22 +391,6 @@ static Scope* make_scope(Scope* parent_scope) {
 
 static void add_variable_to_scope(Stmt* var) {
 	buf_push(current_scope->variables, var);
-}
-
-static void error(Token* token, const char* fmt, ...) {
-	va_list ap;
-	va_start(ap, fmt);
-	printf("%s:%ld:%d: error: ",
-		   token->srcfile->fpath, token->line, token->column);
-	vprintf(fmt, ap);
-	va_end(ap);
-	printf("\n");
-
-	print_file_line_with_info(token->srcfile, token->line);
-	print_marker_arrow_with_info_ln(token->srcfile, token->line, token->column);
-
-	error_occured = ETHER_ERROR;
-	++error_count;
 }
 
 static void note(Token* token, const char* fmt, ...) {

@@ -2,8 +2,9 @@
 ;; do not adhere to the semantics, as it may
 ;; change during development.
 
-[let u32:hello 321]
-[let int:c]
+[let int:hello]
+[let char:c 4324]
+[let char:v hello]
 
 [define int:main [void]
 	[let int:var 2]

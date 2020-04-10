@@ -173,7 +173,7 @@ static void print_number_expr(Expr* expr) {
 }
 
 static void print_variable_expr(Expr* expr) {
-	print_string(expr->variable->lexeme);
+	print_string(expr->variable.identifier->lexeme);
 }
 
 static void print_func_call(Expr* expr) {
