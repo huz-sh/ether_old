@@ -237,6 +237,7 @@ typedef struct Scope {
 
 void token_error(bool* error_occured, uint* error_count,
 				 Token* t, const char* fmt, ...);
+void token_note(Token* token, const char* fmt, ...);
 
 void linker_init(Stmt*** stmts_buf);
 error_code linker_run(void);

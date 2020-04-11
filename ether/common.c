@@ -26,3 +26,16 @@ void token_error(bool* error_occured, uint* error_count,
 	(*error_occured) = ETHER_ERROR;
 	++(*error_count);
 }
+
+void token_note(Token* token, const char* fmt, ...) {
+	va_list ap;
+	va_start(ap, fmt);
+	printf("%s:%ld:%d: note: ",
+		   token->srcfile->fpath, token->line, token->column);
+	vprintf(fmt, ap);
+	va_end(ap);
+	printf("\n");
+
+	print_file_line_with_info(token->srcfile, token->line);
+	print_marker_arrow_with_info_ln(token->srcfile, token->line, token->column);	
+}

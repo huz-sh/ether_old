@@ -2,9 +2,8 @@
 ;; do not adhere to the semantics, as it may
 ;; change during development.
 
-[let int:hello]
-[let char:c 4324]
-[let char:v hello]
+[let uint:hello]
+[let int:c hello]
 
 [define int:main [void]
 	[let int:var 2]
@@ -17,7 +16,7 @@
 	[else
 		[set c 2]]]
 
-[define console:console_create [uint:x uint:y]
+[define console:console_create [int:x int:y]
 	[set c [linux_console_create x y]]]
 
 [struct console
@@ -29,5 +28,5 @@
 [struct u32]
 [struct platform_data]
 
-[define void:linux_console_create [uint:x uint:y]
+[define void:linux_console_create [int:x int:y]
     [set hello 2]]

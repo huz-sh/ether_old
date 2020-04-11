@@ -53,6 +53,10 @@ int main(int argc, char** argv) {
 	resolve_init(stmts_buf);
 	err = resolve_run();
 	if (err == ETHER_ERROR) quit();
+
+#if 0
+	code_gen_init();
+#endif
 }
 
 inline static void quit(void) {

@@ -18,14 +18,15 @@ static void resolve_expr_stmt(Stmt*);
 static DataType* make_data_type(const char*, u8);
 static DataType* resolve_expr(Expr*);
 static DataType* resolve_func_call(Expr*);
+static DataType* resolve_set_expr(Expr*);
 static DataType* resolve_variable_expr(Expr*);
 static DataType* resolve_number_expr(Expr*);
 
 static void init_data_types(void);
-static DataType* make_data_type(const char* main_type, u8 pointer_count);
+static DataType* make_data_type(const char*, u8);
 static Token* make_token_from_string(const char*);
 static bool data_type_match(DataType*, DataType*);
-static char* data_type_to_string(DataType* type);
+static char* data_type_to_string(DataType*);
 
 void resolve_init(Stmt*** stmts_buf) {
 	stmts_all = stmts_buf;
@@ -102,7 +103,68 @@ static DataType* resolve_expr(Expr* expr) {
 }
 
 static DataType* resolve_func_call(Expr* expr) {
-	
+	if (expr->func_call.callee->type == TOKEN_IDENTIFIER) {
+		Stmt* function_called = expr->func_call.function_called;
+		Stmt** params = function_called->func.params;
+		Expr** args = expr->func_call.args;
+
+		bool did_error_occur = false;
+		for (u64 i = 0; i < buf_len(args); ++i) {
+			DataType* param_type = params[i]->var_decl.type;
+			DataType* arg_type = resolve_expr(args[i]);
+
+			/*  TODO: match all data types, and then return */
+			if (!data_type_match(param_type, arg_type)) {
+				error(args[i]->head,
+					  "expected type '%s', but got '%s';",
+					  data_type_to_string(param_type),
+					  data_type_to_string(arg_type));
+				note(function_called->func.identifier,
+					 "function '%s' defined here: ",
+					 function_called->func.identifier->lexeme);
+				/* TODO: check if we have to return null here */
+				did_error_occur = true;
+			}
+		}
+		if (did_error_occur) {
+			/* TODO: check if we have to return null here */
+			return function_called->func.type;
+		}
+		return function_called->func.type;
+	}
+
+	else if (expr->func_call.callee->type == TOKEN_KEYWORD) {
+		if (str_intern(expr->func_call.callee->lexeme) ==
+			str_intern("set")) {
+			return resolve_set_expr(expr);
+		}
+	}
+
+	else {
+		
+	}
+}
+
+static DataType* resolve_set_expr(Expr* expr) {
+	DataType* var_type = resolve_variable_expr(expr->func_call.args[0]);
+	DataType* expr_type = resolve_expr(expr->func_call.args[1]);
+
+	if (!data_type_match(var_type, expr_type)) {
+		Stmt* var_decl = expr->func_call.args[0]->variable.variable_decl_referenced;
+		error(expr->func_call.args[1]->head,
+			  "cannot set variable type '%s' to expression type '%s'",
+			  data_type_to_string(var_type),
+			  data_type_to_string(expr_type));
+		note(var_decl->var_decl.identifier,
+			 "variable '%s' declared here: ",
+			 var_decl->var_decl.identifier->lexeme);
+		/* TODO: we can also give a note if the expr is of type 
+		 * EXPR_FUNC_CALL, and have it reference the line where the function
+		 * was declared */
+		/* TODO: check what to return here */
+		return null;
+	}
+	return var_type;
 }
 
 static DataType* resolve_variable_expr(Expr* expr) {
@@ -137,12 +199,11 @@ static Token* make_token_from_string(const char* str) {
 }
 
 static bool data_type_match(DataType* a, DataType* b) {
-	assert(a);
-	assert(b);
-
-	if (is_token_identical(a->type, b->type)) {
-		if (a->pointer_count == b->pointer_count) {
-			return true;
+	if (a && b) {
+		if (is_token_identical(a->type, b->type)) {
+			if (a->pointer_count == b->pointer_count) {
+				return true;
+			}
 		}
 	}
 	return false;

@@ -37,7 +37,6 @@ static bool is_variable_declared(Stmt*);
 static Scope* make_scope(Scope*);
 static void add_variable_to_scope(Stmt*);
 
-static void note(Token*, const char*, ...);
 static void error_without_info(const char*, ...);
 
 #define CHANGE_SCOPE(x) \
@@ -275,6 +274,7 @@ static void check_func_call(Expr* expr) {
 				for (u64 arg = 0; arg < caller_args_len; ++arg) {
 					check_expr(expr->func_call.args[arg]);
 				}
+				expr->func_call.function_called = defined_functions[i];
 				return;
 			}
 		}
@@ -391,19 +391,6 @@ static Scope* make_scope(Scope* parent_scope) {
 
 static void add_variable_to_scope(Stmt* var) {
 	buf_push(current_scope->variables, var);
-}
-
-static void note(Token* token, const char* fmt, ...) {
-	va_list ap;
-	va_start(ap, fmt);
-	printf("%s:%ld:%d: note: ",
-		   token->srcfile->fpath, token->line, token->column);
-	vprintf(fmt, ap);
-	va_end(ap);
-	printf("\n");
-
-	print_file_line_with_info(token->srcfile, token->line);
-	print_marker_arrow_with_info_ln(token->srcfile, token->line, token->column);	
 }
 
 static void error_without_info(const char* fmt, ...) {
