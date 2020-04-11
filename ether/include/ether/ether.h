@@ -126,6 +126,7 @@ Token** lexer_run(error_code* out_error_code);
 
 typedef enum {
 	EXPR_NUMBER,
+	EXPR_STRING,
 	EXPR_VARIABLE,
 	EXPR_FUNC_CALL,
 } ExprType;
@@ -151,6 +152,7 @@ struct Expr {
 		FuncCall func_call;
 		VariableRef variable;
 		Token* number;
+		Token* string;
 	};
 };
 

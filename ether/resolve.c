@@ -4,9 +4,11 @@
 static Stmt*** stmts_all;
 static char** data_type_strings;
 static bool error_occured;
+static bool persistent_error_occured;
 static uint error_count;
 
 static DataType* int_data_type;
+static DataType* string_data_type;
 
 static void resolve_destroy(void);
 
@@ -19,6 +21,8 @@ static DataType* make_data_type(const char*, u8);
 static DataType* resolve_expr(Expr*);
 static DataType* resolve_func_call(Expr*);
 static DataType* resolve_set_expr(Expr*);
+static DataType* resolve_arithmetic_expr(Expr*);
+static DataType* resolve_comparison_expr(Expr*);
 static DataType* resolve_variable_expr(Expr*);
 static DataType* resolve_number_expr(Expr*);
 
@@ -28,10 +32,13 @@ static Token* make_token_from_string(const char*);
 static bool data_type_match(DataType*, DataType*);
 static char* data_type_to_string(DataType*);
 
+#define CHECK_ERROR(x) if (error_occured) return x;
+
 void resolve_init(Stmt*** stmts_buf) {
 	stmts_all = stmts_buf;
 	data_type_strings = null;
 	error_occured = false;
+	persistent_error_occured = false;
 	error_count = 0;
 
 	init_data_types();
@@ -43,7 +50,7 @@ error_code resolve_run(void) {
 	}
 	resolve_destroy();
 
-	return error_occured;
+	return persistent_error_occured || error_occured;
 }
 
 static void resolve_destroy(void) {
@@ -60,6 +67,11 @@ static void resolve_file(Stmt** stmts) {
 }
 
 static void resolve_stmt(Stmt* stmt) {
+	if (error_occured) {
+		persistent_error_occured = error_occured;
+		error_occured = false;
+	}
+	
 	switch (stmt->type) {
 		case STMT_FUNC: resolve_func(stmt); break;
 		case STMT_VAR_DECL: resolve_var_decl(stmt); break;
@@ -94,9 +106,10 @@ static void resolve_expr_stmt(Stmt* stmt) {
 
 static DataType* resolve_expr(Expr* expr) {
 	switch (expr->type) {
-		case EXPR_FUNC_CALL: return resolve_func_call(expr);
+		case EXPR_NUMBER:	 return resolve_number_expr(expr);
+		case EXPR_STRING:	 return string_data_type;
 		case EXPR_VARIABLE:  return resolve_variable_expr(expr);
-		case EXPR_NUMBER:	 return resolve_number_expr(expr);	
+		case EXPR_FUNC_CALL: return resolve_func_call(expr);
 	}
 	assert(0);
 	return null;
@@ -112,6 +125,7 @@ static DataType* resolve_func_call(Expr* expr) {
 		for (u64 i = 0; i < buf_len(args); ++i) {
 			DataType* param_type = params[i]->var_decl.type;
 			DataType* arg_type = resolve_expr(args[i]);
+			CHECK_ERROR(null);
 
 			/*  TODO: match all data types, and then return */
 			if (!data_type_match(param_type, arg_type)) {
@@ -141,14 +155,25 @@ static DataType* resolve_func_call(Expr* expr) {
 	}
 
 	else {
-		
+		switch (expr->func_call.callee->type) {
+			case TOKEN_PLUS:
+			case TOKEN_MINUS:
+			case TOKEN_STAR:
+			case TOKEN_SLASH: return resolve_arithmetic_expr(expr);
+
+			case TOKEN_EQUAL: return resolve_comparison_expr(expr);
+				
+			default: return;	
+		}
 	}
+	return null;
 }
 
 static DataType* resolve_set_expr(Expr* expr) {
 	DataType* var_type = resolve_variable_expr(expr->func_call.args[0]);
 	DataType* expr_type = resolve_expr(expr->func_call.args[1]);
-
+	CHECK_ERROR(null);
+	
 	if (!data_type_match(var_type, expr_type)) {
 		Stmt* var_decl = expr->func_call.args[0]->variable.variable_decl_referenced;
 		error(expr->func_call.args[1]->head,
@@ -167,6 +192,36 @@ static DataType* resolve_set_expr(Expr* expr) {
 	return var_type;
 }
 
+static DataType* resolve_arithmetic_expr(Expr* expr) {
+	Expr** args = expr->func_call.args;
+
+	bool did_error_occur = false;
+	for (u64 i = 0; i < buf_len(args); ++i) {
+		DataType* arg_type = resolve_expr(args[i]);
+		if (arg_type != null) {
+			if (!data_type_match(arg_type, int_data_type)) {
+				error(args[i]->head,
+					  "'%s' operator can only operate on type '%s', but "
+					  "got expression type '%s'",
+					  expr->func_call.callee->lexeme,
+					  "int",
+					  data_type_to_string(arg_type));
+				did_error_occur = true;
+			}
+		}
+		else did_error_occur = true;
+	}
+	
+	if (did_error_occur) {
+		return null;
+	}
+	return int_data_type;
+}
+
+static DataType* resolve_comparison_expr(Expr* expr) {
+
+}
+
 static DataType* resolve_variable_expr(Expr* expr) {
 	return expr->variable.variable_decl_referenced->var_decl.type;
 }
@@ -178,6 +233,7 @@ static DataType* resolve_number_expr(Expr* expr) {
 
 static void init_data_types(void) {
 	int_data_type = make_data_type("int", 0);
+	string_data_type = make_data_type("char", 1);
 }
 
 static DataType* make_data_type(const char* main_type, u8 pointer_count) {

@@ -28,6 +28,7 @@ static Expr* parse_primary_expr(void);
 static Expr* parse_func_call_expr(void);
 
 static Expr* make_number_expr(Token*);
+static Expr* make_string_expr(Token*);
 static Expr* make_variable_expr(Token*);
 static Expr* make_func_call_expr(Token*, Expr**);
 
@@ -348,6 +349,9 @@ static Expr* parse_primary_expr(void) {
 	if (match_token_type(TOKEN_NUMBER)) {
 		return make_number_expr(previous());
 	}
+	else if (match_token_type(TOKEN_STRING)) {
+		return make_string_expr(previous());
+	}
 	else if (match_token_type(TOKEN_IDENTIFIER)) {
 		return make_variable_expr(previous());
 	}
@@ -408,6 +412,14 @@ static Expr* make_number_expr(Token* t) {
 	new->type = EXPR_NUMBER;
 	new->head = t;
 	new->number = t;
+	return new;
+}
+
+static Expr* make_string_expr(Token* t) {
+	MAKE_EXPR(new);
+	new->type = EXPR_STRING;
+	new->head = t;
+	new->string = t;
 	return new;
 }
 
