@@ -1,5 +1,5 @@
 #include <ether/ether.h>
-#include <ether/linker_resolve_common.h>
+#include <ether/linker_resolve__code_gen_common.h>
 
 static Stmt*** stmts_all;
 static Stmt** defined_structs;

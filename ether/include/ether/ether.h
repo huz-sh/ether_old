@@ -247,4 +247,7 @@ error_code linker_run(void);
 void resolve_init(Stmt*** stmts_buf);
 error_code resolve_run(void);
 
+void code_gen_init(Stmt*** stmts_buf);
+void code_gen_run(void);
+
 #endif

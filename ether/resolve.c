@@ -1,5 +1,5 @@
 #include <ether/ether.h>
-#include <ether/linker_resolve_common.h>
+#include <ether/linker_resolve_code_gen_common.h>
 
 static Stmt*** stmts_all;
 static char** data_type_strings;

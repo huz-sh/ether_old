@@ -54,9 +54,8 @@ int main(int argc, char** argv) {
 	err = resolve_run();
 	if (err == ETHER_ERROR) quit();
 
-#if 0
-	code_gen_init();
-#endif
+	code_gen_init(stmts_buf);
+	code_gen_run();
 }
 
 inline static void quit(void) {
