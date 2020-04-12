@@ -84,6 +84,7 @@ void parser_init(Token** tokens_buf) {
 
 	buf_push(built_in_data_types, str_intern("int"));
 	buf_push(built_in_data_types, str_intern("char"));
+	buf_push(built_in_data_types, str_intern("bool"));
 	buf_push(built_in_data_types, str_intern("void"));
 }
 

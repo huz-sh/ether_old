@@ -9,6 +9,7 @@ static uint error_count;
 
 static DataType* int_data_type;
 static DataType* string_data_type;
+static DataType* bool_data_type;
 
 static void resolve_destroy(void);
 
@@ -219,7 +220,18 @@ static DataType* resolve_arithmetic_expr(Expr* expr) {
 }
 
 static DataType* resolve_comparison_expr(Expr* expr) {
-
+	DataType* a_expr_type = resolve_expr(expr->func_call.args[0]);
+	DataType* b_expr_type = resolve_expr(expr->func_call.args[1]);
+	CHECK_ERROR(null);
+	
+	if (!data_type_match(a_expr_type, b_expr_type)) {
+		error(expr->func_call.args[1]->head,
+			  "cannot compare conflicting types '%s' and '%s'",
+			  data_type_to_string(a_expr_type),
+			  data_type_to_string(b_expr_type));
+		return null;
+	}
+	return bool_data_type;
 }
 
 static DataType* resolve_variable_expr(Expr* expr) {
@@ -234,6 +246,7 @@ static DataType* resolve_number_expr(Expr* expr) {
 static void init_data_types(void) {
 	int_data_type = make_data_type("int", 0);
 	string_data_type = make_data_type("char", 1);
+	bool_data_type = make_data_type("bool", 0);
 }
 
 static DataType* make_data_type(const char* main_type, u8 pointer_count) {

@@ -28,6 +28,8 @@ static void check_if_branch(IfBranch*, IfBranchType);
 static void check_expr_stmt(Stmt*);
 static void check_expr(Expr*);
 static void check_func_call(Expr*);
+static void check_set_expr(Expr*);
+static void check_comparision_expr(Expr*);
 static void check_variable_expr(Expr*);
 
 static void check_data_type(DataType*);
@@ -289,34 +291,64 @@ static void check_func_call(Expr* expr) {
 	else if (expr->func_call.callee->type == TOKEN_KEYWORD) {
 		if (str_intern(expr->func_call.callee->lexeme) ==
 			str_intern("set")) {
-			u64 args_len = buf_len(expr->func_call.args);
-			Token* error_token = null;
-								  
-			if (args_len > 2) {
-				error_token = expr->func_call.args[2]->head;
-			}
-			else if (args_len < 2) {
-				error_token = expr->head;
-			}
-			
-			if (error_token != null) {
-				/* TODO: change 'set' to a macro */
-				error(error_token,
-					  "built-in function 'set' only accepts 2 arguments, "
-					  "but got %ld argument(s);", args_len);
-				return;
-			}
-
-			check_if_variable_is_in_scope(expr->func_call.args[0]);
-			check_expr(expr->func_call.args[1]);
+			check_set_expr(expr);
 		}
 	}
 
 	else {
+		switch (expr->func_call.callee->type) {
+			case TOKEN_EQUAL: check_comparision_expr(expr); return;
+		}
+		
 		for (u64 i = 0; i < buf_len(expr->func_call.args); ++i) {
 			check_expr(expr->func_call.args[i]);
 		}
 	}
+}
+
+static void check_set_expr(Expr* expr) {
+	u64 args_len = buf_len(expr->func_call.args);
+	Token* error_token = null;
+								  
+	if (args_len > 2) {
+		error_token = expr->func_call.args[2]->head;
+	}
+	else if (args_len < 2) {
+		error_token = expr->head;
+	}
+			
+	if (error_token != null) {
+		/* TODO: change 'set' to a macro */
+		error(error_token,
+			  "built-in function 'set' only accepts 2 arguments, "
+			  "but got %ld argument(s);", args_len);
+		return;
+	}
+
+	check_if_variable_is_in_scope(expr->func_call.args[0]);
+	check_expr(expr->func_call.args[1]);
+}
+
+static void check_comparision_expr(Expr* expr) {
+	u64 args_len = buf_len(expr->func_call.args);
+	Token* error_token = null;
+								  
+	if (args_len > 2) {
+		error_token = expr->func_call.args[2]->head;
+	}
+	else if (args_len < 2) {
+		error_token = expr->head;
+	}
+			
+	if (error_token != null) {
+		error(error_token,
+			  "'=' operator only accepts 2 arguments, "
+			  "but got %ld argument(s);", args_len);
+		return;
+	}
+
+	check_expr(expr->func_call.args[0]);	
+	check_expr(expr->func_call.args[1]);	
 }
 
 static void check_variable_expr(Expr* expr) {
