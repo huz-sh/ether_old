@@ -242,7 +242,8 @@ static void check_expr(Expr* expr) {
 	switch (expr->type) {
 		case EXPR_FUNC_CALL: check_func_call(expr); break;
 		case EXPR_VARIABLE: check_variable_expr(expr); break;
-		case EXPR_NUMBER: break;	
+		case EXPR_NUMBER:
+		case EXPR_STRING: break;
 	}
 }
 
@@ -298,6 +299,7 @@ static void check_func_call(Expr* expr) {
 	else {
 		switch (expr->func_call.callee->type) {
 			case TOKEN_EQUAL: check_comparision_expr(expr); return;
+			default: break;	
 		}
 		
 		for (u64 i = 0; i < buf_len(expr->func_call.args); ++i) {

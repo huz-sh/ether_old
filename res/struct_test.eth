@@ -2,17 +2,18 @@
 ;; do not adhere to the semantics, as it may
 ;; change during development.
 
-[let uint:hello]
+[let int:hello]
 [let int:c hello]
+[let char*:str]
 
 [define int:main [void]
 	[let int:var 2]
 	[console_create 1 2]
-	[set var [* "dsd" "fd"]]
+	[set var [* 2 3]]
 	
-	[if [= var 2]
+	[if [= var "hello"]
 		[set var 3]]
-	[elif [= var 5]
+	[elif [= str 5]
 		[set c 10]]
 	[else
 		[set c 2]]]
@@ -29,5 +30,5 @@
 [struct u32]
 [struct platform_data]
 
-[define void:linux_console_create [int:x int:y]
-    [set hello [+ "ffd" 3]]]
+[define int:linux_console_create [int:x int:y]
+    [set hello [+ 4 3]]]

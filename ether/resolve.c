@@ -17,6 +17,8 @@ static void resolve_file(Stmt**);
 static void resolve_stmt(Stmt*);
 static void resolve_func(Stmt*);
 static void resolve_var_decl(Stmt*);
+static void resolve_if_stmt(Stmt*);
+static void resolve_if_branch(IfBranch*, IfBranchType);
 static void resolve_expr_stmt(Stmt*);
 static DataType* make_data_type(const char*, u8);
 static DataType* resolve_expr(Expr*);
@@ -76,7 +78,9 @@ static void resolve_stmt(Stmt* stmt) {
 	switch (stmt->type) {
 		case STMT_FUNC: resolve_func(stmt); break;
 		case STMT_VAR_DECL: resolve_var_decl(stmt); break;
-		case STMT_EXPR: resolve_expr_stmt(stmt); break;	
+		case STMT_IF: resolve_if_stmt(stmt); break;	
+		case STMT_EXPR: resolve_expr_stmt(stmt); break;
+		case STMT_STRUCT: break;	
 	}
 }
 
@@ -98,6 +102,28 @@ static void resolve_var_decl(Stmt* stmt) {
 				  data_type_to_string(initializer_type));
 			return;
 		}
+	}
+}
+
+static void resolve_if_stmt(Stmt* stmt) {
+	resolve_if_branch(stmt->if_stmt.if_branch, IF_IF_BRANCH);
+
+	for (u64 i = 0; i < buf_len(stmt->if_stmt.elif_branch); ++i) {
+		resolve_if_branch(stmt->if_stmt.elif_branch[i], IF_ELIF_BRANCH);
+	}
+
+	if (stmt->if_stmt.else_branch) {
+		resolve_if_branch(stmt->if_stmt.else_branch, IF_ELSE_BRANCH);
+	}
+}
+
+static void resolve_if_branch(IfBranch* branch, IfBranchType type) {
+	if (type != IF_ELSE_BRANCH) {
+		resolve_expr(branch->cond);
+	}
+
+	for (u64 i = 0; i < buf_len(branch->body); ++i) {
+		resolve_stmt(branch->body[i]);
 	}
 }
 
@@ -164,7 +190,7 @@ static DataType* resolve_func_call(Expr* expr) {
 
 			case TOKEN_EQUAL: return resolve_comparison_expr(expr);
 				
-			default: return;	
+			default: return null;	
 		}
 	}
 	return null;
@@ -226,7 +252,8 @@ static DataType* resolve_comparison_expr(Expr* expr) {
 	
 	if (!data_type_match(a_expr_type, b_expr_type)) {
 		error(expr->func_call.args[1]->head,
-			  "cannot compare conflicting types '%s' and '%s'",
+			  "'%s': cannot compare conflicting types '%s' and '%s'",
+			  expr->func_call.callee->lexeme,
 			  data_type_to_string(a_expr_type),
 			  data_type_to_string(b_expr_type));
 		return null;
