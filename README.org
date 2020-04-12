@@ -65,40 +65,40 @@ cross-compile to.
 
 *** Hello World
 
-#+BEGIN_SRC c
+#+BEGIN_SRC ether
 [define int:main [void]
-    [putsl "Hello, world!"]]
+	[putsl "Hello, world!"]]
 #+END_SRC
 
 *** Semantic features (brief)
 
-#+BEGIN_SRC c
+#+BEGIN_SRC ether
 [struct entity
-    [vec3: pos]
+	[vec3: pos]
 	[vec3: rot]
 	[vec3: scl]
 	[char*: name]]
 
 [static]
 [define void:entity_init [entity*:e]
-    [set e.pos null]
+	[set e.pos null]
 	[set e.rot null]
 	[set e.scl null]
 	[putsl e.name]]
 
 [define void:entity_render [entity*:e]
-    [renderer_submit e.mesh_comp]]]
+	[renderer_submit e.mesh_comp]]]
 
 [define int:main [int:argc, char**:argv]
-    [let entity*:e]
+	[let entity*:e]
 	[comptime
-		[assert [= [sizeof entity*] 8]]] ;; only 64-bit
+		[assert [= [sizeof entity*] 8]]] ;; error on non 64-bit
 	[entity_init e]
 	[entity_render e]
 
 [test "entity test"
-    [let entity:e = [entity_init]]
-    [assert e]]
+	[let entity:e = [entity_init]]
+	[assert e]]
 #+END_SRC
 
 ** License
