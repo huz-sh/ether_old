@@ -14,6 +14,8 @@
 #define false 0
 #define null NULL
 
+#define TAB_SIZE 4
+
 typedef unsigned int  uint;
 typedef unsigned char uchar;
 typedef signed char schar;
@@ -172,6 +174,7 @@ typedef enum {
 typedef struct {
 	DataType* type;
 	Token* identifier;
+	Stmt* struct_referenced;
 } Field;
 
 typedef struct {

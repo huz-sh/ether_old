@@ -33,6 +33,7 @@ static void check_comparision_expr(Expr*);
 static void check_variable_expr(Expr*);
 
 static void check_data_type(DataType*);
+static Stmt* check_data_type_return_struct_if_identifier(DataType* data_type);
 static void check_if_variable_is_in_scope(Expr*);
 static bool is_variable_declared(Stmt*);
 
@@ -166,7 +167,13 @@ static void check_stmt(Stmt* stmt) {
 static void check_struct(Stmt* stmt) {
 	Field** fields = stmt->struct_stmt.fields;
 	for (u64 i = 0; i < buf_len(fields); ++i) {
-		check_data_type(fields[i]->type);
+		if (fields[i]->type->type->type == TOKEN_IDENTIFIER) {
+			fields[i]->struct_referenced =
+				check_data_type_return_struct_if_identifier(fields[i]->type);
+		}
+		else {
+			check_data_type(fields[i]->type);
+		}
 	}
 }
 
@@ -358,23 +365,30 @@ static void check_variable_expr(Expr* expr) {
 }
 
 static void check_data_type(DataType* data_type) {
+	check_data_type_return_struct_if_identifier(data_type);
+}
+
+static Stmt* check_data_type_return_struct_if_identifier(DataType* data_type) {
 	assert(data_type);
 	if (data_type->type->type == TOKEN_IDENTIFIER) {
-		bool data_type_valid = false;
+		Stmt* struct_stmt = null;
 		for (u64 i = 0; i < buf_len(defined_structs); ++i) {
 			if (is_token_identical(data_type->type,
 								   defined_structs[i]->struct_stmt.identifier)) {
-				data_type_valid = true;
+				struct_stmt = defined_structs[i];
 			}
 		}
 	
-		if (!data_type_valid) {
+		if (!struct_stmt) {
 			error(data_type->type,
 				  "undefined type name '%s'; did you forget to define type '%s'",
 				  data_type->type->lexeme,
 				  data_type->type->lexeme);
+			return null;
 		}
+		return struct_stmt;
 	}
+	return null;
 }
 
 static bool is_variable_declared(Stmt* var) {

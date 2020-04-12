@@ -1,7 +1,5 @@
 #include <ether/ether.h>
 
-#define TAB_SIZE 4
-
 static void print_tab(void);
 
 SourceFile* ether_read_file(char* fpath) {

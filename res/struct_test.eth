@@ -30,7 +30,11 @@
 [struct u32]
 
 [struct platform_data
+	[win_platform_data:data]
 	[platform_data*:c]]
+
+[struct win_platform_data
+	[int:x]]
 
 [define int:linux_console_create [int:x int:y]
     [set hello [+ 4 3]]]
