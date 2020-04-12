@@ -148,6 +148,15 @@ static void gen_field(Field* field) {
 }
 
 static void gen_global_var_decls(void) {
+	for (u64 file = 0; file < buf_len(stmts_all); ++file) {
+		for (u64 stmt = 0; stmt < buf_len(stmts_all[file]); ++stmt) {
+			Stmt* current_stmt = stmts_all[file][stmt];
+			if (current_stmt->type == STMT_VAR_DECL) {
+				gen_var_decl(current_stmt);
+			}
+		}
+	}
+	print_newline();
 }
 
 static void gen_function_prototypes(void) {
@@ -175,6 +184,12 @@ static void gen_stmt(Stmt* stmt) {
 }
 
 static void gen_var_decl(Stmt* stmt) {
+	print_data_type(stmt->var_decl.type);
+	print_space();
+	print_token(stmt->var_decl.identifier);
+	/* TODO: print initializer */
+	print_semicolon();
+	print_newline();
 }
 
 static void gen_if_stmt(Stmt* stmt) {
