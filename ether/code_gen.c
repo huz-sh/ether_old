@@ -262,7 +262,18 @@ static void gen_variable_expr(Expr* expr) {
 
 static void gen_func_call(Expr* expr) {
 	if (expr->func_call.callee->type == TOKEN_IDENTIFIER) {
+		print_token(expr->func_call.callee);
+		print_left_paren();
 
+		Expr** args = expr->func_call.args; 
+		for (u64 i = 0; i < buf_len(args); ++i) {
+			gen_expr(args[i]);
+
+			if (i != (buf_len(args) - 1)) {
+				print_string(", ");
+			}
+		}
+		print_right_paren();
 	}
 
 	else if (expr->func_call.callee->type == TOKEN_KEYWORD) {
