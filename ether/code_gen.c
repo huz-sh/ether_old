@@ -297,6 +297,16 @@ static void gen_set_expr(Expr* expr) {
 }
 
 static void gen_arithmetic_expr(Expr* expr) {
+	print_left_paren();
+	Expr** args = expr->func_call.args;
+	for (u64 i = 0; i < buf_len(args); ++i) {
+		gen_expr(args[i]);
+		
+		if (i != (buf_len(args) - 1)) {
+			print_token(expr->func_call.callee);
+		}
+	}
+	print_right_paren();
 }
 
 static void gen_comparison_expr(Expr* expr) {
