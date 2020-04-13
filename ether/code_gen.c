@@ -16,7 +16,8 @@ static void gen_struct(Stmt*);
 static void gen_inline_struct(Stmt*);
 static void gen_field(Field*);
 static void gen_global_var_decls(void);
-static void gen_function_prototypes(void);
+static void gen_func_decls(void);
+static void gen_func_decl(Stmt*);
 static void gen_file(Stmt**);
 static void gen_func(Stmt*);
 static void gen_stmt(Stmt*);
@@ -46,7 +47,7 @@ void code_gen_run(void) {
 	gen_struct_decls();
 	gen_structs();
 	gen_global_var_decls();
-	gen_function_prototypes();
+	gen_func_decls();
 	
 	for (u64 i = 0; i < buf_len(stmts_all); ++i) {
 		gen_file(stmts_all[i]);
@@ -159,7 +160,36 @@ static void gen_global_var_decls(void) {
 	print_newline();
 }
 
-static void gen_function_prototypes(void) {
+static void gen_func_decls(void) {
+	for (u64 file = 0; file < buf_len(stmts_all); ++file) {
+		for (u64 stmt = 0; stmt < buf_len(stmts_all[file]); ++stmt) {
+			Stmt* current_stmt = stmts_all[file][stmt];
+			if (current_stmt->type == STMT_FUNC) {
+				gen_func_decl(current_stmt);
+			}
+		}
+	}
+	print_newline();
+}
+
+static void gen_func_decl(Stmt* stmt) {
+	print_data_type(stmt->func.type);
+	print_space();
+	print_token(stmt->func.identifier);
+	
+	print_char('(');
+	Stmt** params = stmt->func.params;
+	for (u64 i = 0; i < buf_len(params); ++i) {
+		print_data_type(params[i]->var_decl.type);
+		print_space();
+		print_token(params[i]->var_decl.identifier);
+		if (i != (buf_len(params) - 1)) {
+			print_string(", ");
+		}
+	}
+	print_char(')');
+	print_semicolon();
+	print_newline();
 }
 
 static void gen_file(Stmt** stmts) {
