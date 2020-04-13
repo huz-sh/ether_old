@@ -25,11 +25,22 @@ static void gen_var_decl(Stmt*);
 static void gen_if_stmt(Stmt*);
 static void gen_expr_stmt(Stmt*);
 
+static void gen_expr(Expr*);
+static void gen_number_expr(Expr*);
+static void gen_string_expr(Expr*);
+static void gen_variable_expr(Expr*);
+static void gen_func_call(Expr*);
+static void gen_set_expr(Expr*);
+static void gen_arithmetic_expr(Expr*);
+static void gen_comparison_expr(Expr*);
+
 static void print_data_type(DataType*);
 static void print_token(Token*);
 static void print_string(char*);
 static void print_tabs_by_indentation(void);
 static void print_semicolon(void);
+static void print_left_paren(void);
+static void print_right_paren(void);
 static void print_tab(void);
 static void print_space(void);
 static void print_newline(void);
@@ -176,8 +187,8 @@ static void gen_func_decl(Stmt* stmt) {
 	print_data_type(stmt->func.type);
 	print_space();
 	print_token(stmt->func.identifier);
-	
-	print_char('(');
+
+	print_left_paren();
 	Stmt** params = stmt->func.params;
 	for (u64 i = 0; i < buf_len(params); ++i) {
 		print_data_type(params[i]->var_decl.type);
@@ -187,7 +198,7 @@ static void gen_func_decl(Stmt* stmt) {
 			print_string(", ");
 		}
 	}
-	print_char(')');
+	print_right_paren();
 	print_semicolon();
 	print_newline();
 }
@@ -228,6 +239,63 @@ static void gen_if_stmt(Stmt* stmt) {
 static void gen_expr_stmt(Stmt* stmt) {
 }
 
+static void gen_expr(Expr* expr) {
+	switch (expr->type) {
+		case EXPR_NUMBER: gen_number_expr(expr); break;
+		case EXPR_STRING: gen_string_expr(expr); break;
+		case EXPR_VARIABLE: gen_variable_expr(expr); break;
+		case EXPR_FUNC_CALL: gen_func_call(expr); break;	
+	}
+}
+
+static void gen_number_expr(Expr* expr) {
+	print_token(expr->number);
+}
+
+static void gen_string_expr(Expr* expr) {
+	print_token(expr->string);
+}
+
+static void gen_variable_expr(Expr* expr) {
+	print_token(expr->variable.identifier);
+}
+
+static void gen_func_call(Expr* expr) {
+	if (expr->func_call.callee->type == TOKEN_IDENTIFIER) {
+
+	}
+
+	else if (expr->func_callee->type == TOKEN_KEYWORD) {
+		if (str_intern(expr->func_callee->lexeme) ==
+			str_intern("set")) {
+			gen_set_expr(expr);
+		}
+	}
+
+	else {
+		switch (expr->func_call.callee->type) {
+			case TOKEN_PLUS:
+			case TOKEN_MINUS:
+			case TOKEN_STAR:
+			case TOKEN_SLASH: gen_arithmetic_expr(expr); break;
+
+			case TOKEN_EQUAL: gen_comparison_expr(expr); break;
+
+			default: break;	
+		}
+	}
+}
+
+static void gen_set_expr(Expr* expr) {
+}
+
+static void gen_arithmetic_expr(Expr* expr) {
+}
+
+static void gen_comparison_expr(Expr* expr) {
+
+}
+
 static void print_data_type(DataType* data_type) {
 	print_token(data_type->type);
 	for (u8 i = 0; i < data_type->pointer_count; ++i) {
@@ -256,6 +324,14 @@ static void print_tabs_by_indentation(void) {
 
 static void print_semicolon(void) {
 	print_char(';');
+}
+
+static void print_left_paren(void) {
+	print_char('(');
+}
+
+static void print_right_paren(void) {
+	print_char(')');
 }
 
 static void print_tab(void) {
