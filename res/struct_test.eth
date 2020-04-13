@@ -3,7 +3,7 @@
 ;; change during development.
 
 [let int:hello]
-[let int:c hello]
+[let int:c]
 [let char*:str]
 
 [define int:main [void]
@@ -13,12 +13,12 @@
 	
 	[if [= var 3]
 		[set var 3]]
-	[elif [= c]
+	[elif [= c 3]
 		[set c 10]]
 	[else
 		[set c 2]]
 	[if 1
-		[+ 3]]]
+		[+ 3 3 2]]]
 
 [define console:console_create [int:x int:y]
 	[set c [linux_console_create x y]]]

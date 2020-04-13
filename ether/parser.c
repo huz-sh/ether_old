@@ -254,6 +254,8 @@ static Stmt* parse_func(DataType* d, Token* t) {
 static Stmt* parse_var_decl(DataType* d, Token* t, bool is_global_var) {
 	Expr* init = null;
 	if (!match_token_type(TOKEN_RIGHT_BRACKET)) {
+		/* TODO: in global variables, disable initializers, 
+		 * or only constant (no variable reference) initializers  */
 		init = parse_expr();
 		consume_right_bracket();
 	}

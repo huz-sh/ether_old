@@ -228,7 +228,10 @@ static void gen_var_decl(Stmt* stmt) {
 	print_data_type(stmt->var_decl.type);
 	print_space();
 	print_token(stmt->var_decl.identifier);
-	/* TODO: print initializer */
+	if (stmt->var_decl.initializer) {
+		print_string(" = ");
+		gen_expr(stmt->var_decl.initializer);
+	}
 	print_semicolon();
 	print_newline();
 }
