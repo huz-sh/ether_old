@@ -35,7 +35,10 @@ static Token* make_token_from_string(const char*);
 static bool data_type_match(DataType*, DataType*);
 static char* data_type_to_string(DataType*);
 
-#define CHECK_ERROR(x) if (error_occured) return x;
+#define CHECK_ERROR uint current_error = error_count
+
+#define EXIT_ERROR(x) if (error_count > current_error) return x
+#define EXIT_ERROR_VOID_RETURN if (error_count > current_error) return
 
 void resolve_init(Stmt*** stmts_buf) {
 	stmts_all = stmts_buf;
@@ -92,8 +95,11 @@ static void resolve_func(Stmt* stmt) {
 
 static void resolve_var_decl(Stmt* stmt) {
 	if (stmt->var_decl.initializer) {
+		CHECK_ERROR;
 		DataType* defined_type = stmt->var_decl.type;
 		DataType* initializer_type = resolve_expr(stmt->var_decl.initializer);
+		EXIT_ERROR_VOID_RETURN;
+		
 		if (!data_type_match(defined_type, initializer_type)) {
 			error(stmt->var_decl.initializer->head,
 				  "cannot initialize variable type '%s' from intializer "
@@ -119,7 +125,15 @@ static void resolve_if_stmt(Stmt* stmt) {
 
 static void resolve_if_branch(IfBranch* branch, IfBranchType type) {
 	if (type != IF_ELSE_BRANCH) {
-		resolve_expr(branch->cond);
+		CHECK_ERROR;
+		DataType* expr_type = resolve_expr(branch->cond);
+		EXIT_ERROR_VOID_RETURN;
+		
+		if (!data_type_match(expr_type, bool_data_type)) {
+			error(branch->cond->head,
+				  "expected 'bool' data type in 'if' condition expression, "
+				  "but got '%s';", data_type_to_string(expr_type));
+		}
 	}
 
 	for (u64 i = 0; i < buf_len(branch->body); ++i) {
@@ -150,9 +164,10 @@ static DataType* resolve_func_call(Expr* expr) {
 
 		bool did_error_occur = false;
 		for (u64 i = 0; i < buf_len(args); ++i) {
+			CHECK_ERROR;
 			DataType* param_type = params[i]->var_decl.type;
 			DataType* arg_type = resolve_expr(args[i]);
-			CHECK_ERROR(null);
+			EXIT_ERROR(null);
 
 			/*  TODO: match all data types, and then return */
 			if (!data_type_match(param_type, arg_type)) {
@@ -197,9 +212,10 @@ static DataType* resolve_func_call(Expr* expr) {
 }
 
 static DataType* resolve_set_expr(Expr* expr) {
+	CHECK_ERROR;
 	DataType* var_type = resolve_variable_expr(expr->func_call.args[0]);
 	DataType* expr_type = resolve_expr(expr->func_call.args[1]);
-	CHECK_ERROR(null);
+	EXIT_ERROR(null);
 	
 	if (!data_type_match(var_type, expr_type)) {
 		Stmt* var_decl = expr->func_call.args[0]->variable.variable_decl_referenced;
@@ -246,9 +262,10 @@ static DataType* resolve_arithmetic_expr(Expr* expr) {
 }
 
 static DataType* resolve_comparison_expr(Expr* expr) {
+	CHECK_ERROR;
 	DataType* a_expr_type = resolve_expr(expr->func_call.args[0]);
 	DataType* b_expr_type = resolve_expr(expr->func_call.args[1]);
-	CHECK_ERROR(null);
+	EXIT_ERROR(null);
 	
 	if (!data_type_match(a_expr_type, b_expr_type)) {
 		error(expr->func_call.args[1]->head,
