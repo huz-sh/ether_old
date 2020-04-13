@@ -279,7 +279,35 @@ static void gen_if_stmt(Stmt* stmt) {
 }
 
 static void gen_if_branch(IfBranch* branch, IfBranchType type) {
+	if (type != IF_IF_BRANCH) {
+		print_tabs_by_indentation();
+	}
 
+	switch (type) {
+		case IF_IF_BRANCH: print_string("if "); break;
+		case IF_ELIF_BRANCH: print_string("else if "); break;
+		case IF_ELSE_BRANCH: print_string("else "); break;	
+	}
+
+	if (type != IF_ELSE_BRANCH) {
+		print_left_paren();
+		gen_expr(branch->cond);
+		print_right_paren();
+		print_space();
+	}
+
+	print_left_brace();
+	print_newline();
+	
+	tab_count++;
+	for (u64 i = 0; i < buf_len(branch->body); ++i) {
+		gen_stmt(branch->body[i]);
+	}
+	tab_count--;
+	
+	print_tabs_by_indentation();
+	print_right_brace();
+	print_newline();
 }
 
 static void gen_expr_stmt(Stmt* stmt) {
