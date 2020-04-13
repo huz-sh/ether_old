@@ -39,4 +39,4 @@
 	[int:x]]
 
 [define int:linux_console_create [int:x int:y]
-    [set hello [+ 4 3]]]
+    [set hello [+ 4 3 5 4]]]

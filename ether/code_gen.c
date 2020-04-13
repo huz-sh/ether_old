@@ -40,8 +40,12 @@ static void print_token(Token*);
 static void print_string(char*);
 static void print_tabs_by_indentation(void);
 static void print_semicolon(void);
+static void print_comma(void);
+static void print_equal(void);
 static void print_left_paren(void);
 static void print_right_paren(void);
+static void print_left_brace(void);
+static void print_right_brace(void);
 static void print_tab(void);
 static void print_space(void);
 static void print_newline(void);
@@ -112,7 +116,8 @@ static void gen_struct(Stmt* stmt) {
 	print_tabs_by_indentation();
 	print_string("typedef struct ");
 	print_token(stmt->struct_stmt.identifier);
-	print_string(" {");
+	print_space();
+	print_left_brace();
 	print_newline();
 
 	tab_count++;
@@ -122,7 +127,8 @@ static void gen_struct(Stmt* stmt) {
 		gen_field(fields[i]);
 	}
 	tab_count--;
-	print_string("} ");
+	print_right_brace();
+	print_space();
 	print_token(stmt->struct_stmt.identifier);
 	print_semicolon();
 	print_newline();
@@ -142,7 +148,7 @@ static void gen_inline_struct(Stmt* stmt) {
 	}
 	tab_count--;
 	print_tabs_by_indentation();
-	print_string("}");
+	print_right_brace();
 }
 
 static void gen_field(Field* field) {
@@ -202,7 +208,8 @@ static void gen_func_prototype(Stmt* stmt) {
 		print_space();
 		print_token(params[i]->var_decl.identifier);
 		if (i != (buf_len(params) - 1)) {
-			print_string(", ");
+			print_comma();
+			print_space();
 		}
 	}
 	print_right_paren();
@@ -219,14 +226,18 @@ static void gen_file(Stmt** stmts) {
 static void gen_func(Stmt* stmt) {
 	gen_func_prototype(stmt);
 
-	print_string(" {\n");
+	print_space();
+	print_left_brace();
+	print_newline();
 	Stmt** body = stmt->func.body;
 	tab_count++;
 	for (u64 i = 0; i < buf_len(body); ++i) {
 		gen_stmt(body[i]);
 	}
 	tab_count--;
-	print_string("}\n\n");
+	print_right_brace();
+	print_newline();
+	print_newline();
 }
 
 static void gen_stmt(Stmt* stmt) {
@@ -245,7 +256,9 @@ static void gen_var_decl(Stmt* stmt) {
 	print_space();
 	print_token(stmt->var_decl.identifier);
 	if (stmt->var_decl.initializer) {
-		print_string(" = ");
+		print_space();
+		print_equal();
+		print_space();
 		gen_expr(stmt->var_decl.initializer);
 	}
 	print_semicolon();
@@ -256,6 +269,9 @@ static void gen_if_stmt(Stmt* stmt) {
 }
 
 static void gen_expr_stmt(Stmt* stmt) {
+	gen_expr(stmt->expr);
+	print_semicolon();
+	print_newline();
 }
 
 static void gen_expr(Expr* expr) {
@@ -289,7 +305,8 @@ static void gen_func_call(Expr* expr) {
 			gen_expr(args[i]);
 
 			if (i != (buf_len(args) - 1)) {
-				print_string(", ");
+				print_comma();
+				print_space();
 			}
 		}
 		print_right_paren();
@@ -311,6 +328,7 @@ static void gen_func_call(Expr* expr) {
 
 			case TOKEN_EQUAL: gen_comparison_expr(expr); break;
 
+			
 			default: break;	
 		}
 	}
@@ -320,7 +338,7 @@ static void gen_set_expr(Expr* expr) {
 	print_left_paren();
 	gen_variable_expr(expr->func_call.args[0]);
 	print_space();
-	print_char('=');
+	print_equal();
 	print_space();
 	gen_expr(expr->func_call.args[1]);
 	print_right_paren();
@@ -333,7 +351,9 @@ static void gen_arithmetic_expr(Expr* expr) {
 		gen_expr(args[i]);
 		
 		if (i != (buf_len(args) - 1)) {
+			print_space();
 			print_token(expr->func_call.callee);
+			print_space();
 		}
 	}
 	print_right_paren();
@@ -347,10 +367,15 @@ static void gen_comparison_expr(Expr* expr) {
 		
 		if (i != (buf_len(args) - 1)) {
 			if (expr->func_call.callee->type == TOKEN_EQUAL) {
-				print_string("==");
+				print_space();
+				print_equal();
+				print_equal();
+				print_space();
 			}
 			else {
+				print_space();
 				print_token(expr->func_call.callee);
+				print_space();
 			}
 		}
 	}
@@ -387,12 +412,28 @@ static void print_semicolon(void) {
 	print_char(';');
 }
 
+static void print_comma(void) {
+	print_char(',');
+}
+
+static void print_equal(void) {
+	print_char('=');
+}
+
 static void print_left_paren(void) {
 	print_char('(');
 }
 
 static void print_right_paren(void) {
 	print_char(')');
+}
+
+static void print_left_brace(void) {
+	print_char('{');
+}
+
+static void print_right_brace(void) {
+	print_char('}');
 }
 
 static void print_tab(void) {
