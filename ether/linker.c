@@ -29,11 +29,12 @@ static void check_expr_stmt(Stmt*);
 static void check_expr(Expr*);
 static void check_func_call(Expr*);
 static void check_set_expr(Expr*);
+static void check_arithmetic_expr(Expr*);
 static void check_comparision_expr(Expr*);
 static void check_variable_expr(Expr*);
 
 static void check_data_type(DataType*);
-static Stmt* check_data_type_return_struct_if_identifier(DataType* data_type);
+static Stmt* check_data_type_return_struct_if_identifier(DataType*_type);
 static void check_if_variable_is_in_scope(Expr*);
 static bool is_variable_declared(Stmt*);
 
@@ -305,12 +306,13 @@ static void check_func_call(Expr* expr) {
 
 	else {
 		switch (expr->func_call.callee->type) {
+			case TOKEN_PLUS:
+			case TOKEN_MINUS:
+			case TOKEN_STAR:
+			case TOKEN_SLASH: check_arithmetic_expr(expr); break;
+
 			case TOKEN_EQUAL: check_comparision_expr(expr); return;
 			default: break;	
-		}
-		
-		for (u64 i = 0; i < buf_len(expr->func_call.args); ++i) {
-			check_expr(expr->func_call.args[i]);
 		}
 	}
 }
@@ -329,13 +331,35 @@ static void check_set_expr(Expr* expr) {
 	if (error_token != null) {
 		/* TODO: change 'set' to a macro */
 		error(error_token,
-			  "built-in function 'set' only accepts 2 arguments, "
+			  "built-in function 'set' needs 2 arguments to operate, "
 			  "but got %ld argument(s);", args_len);
 		return;
 	}
 
 	check_if_variable_is_in_scope(expr->func_call.args[0]);
 	check_expr(expr->func_call.args[1]);
+}
+
+static void check_arithmetic_expr(Expr* expr) {
+	const u64 args_len = buf_len(expr->func_call.args);
+	Token* error_token = null;
+
+	if (args_len < 2) {
+		error_token = expr->head;
+	}
+
+	if (error_token != null) {
+		error(error_token,
+			  "'%s' operator needs 2 (or more) arguments to operate, "
+			  "but got %ld argument(s);",
+			  expr->func_call.callee->lexeme,
+			  args_len);
+		return;
+	}
+
+	for (u64 i = 0; i < args_len; ++i) {
+		check_expr(expr->func_call.args[i]);		
+	}
 }
 
 static void check_comparision_expr(Expr* expr) {
@@ -351,7 +375,7 @@ static void check_comparision_expr(Expr* expr) {
 			
 	if (error_token != null) {
 		error(error_token,
-			  "'=' operator only accepts 2 arguments, "
+			  "'=' operator need 2 arguments to operate, "
 			  "but got %ld argument(s);", args_len);
 		return;
 	}

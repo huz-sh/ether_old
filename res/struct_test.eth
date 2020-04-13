@@ -13,10 +13,12 @@
 	
 	[if [= var 3]
 		[set var 3]]
-	[elif [= c 5]
+	[elif [= c]
 		[set c 10]]
 	[else
-		[set c 2]]]
+		[set c 2]]
+	[if 1
+		[+ 3]]]
 
 [define console:console_create [int:x int:y]
 	[set c [linux_console_create x y]]]

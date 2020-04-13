@@ -265,8 +265,8 @@ static void gen_func_call(Expr* expr) {
 
 	}
 
-	else if (expr->func_callee->type == TOKEN_KEYWORD) {
-		if (str_intern(expr->func_callee->lexeme) ==
+	else if (expr->func_call.callee->type == TOKEN_KEYWORD) {
+		if (str_intern(expr->func_call.callee->lexeme) ==
 			str_intern("set")) {
 			gen_set_expr(expr);
 		}
