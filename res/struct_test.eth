@@ -18,7 +18,8 @@
 	[else
 		[set c 2]]
 	[if 1
-		[+ 3 3 2]]]
+		[if 2
+			[+ 3 3 2]]]]
 
 [define console:console_create [int:x int:y]
 	[set c [linux_console_create x y]]]
