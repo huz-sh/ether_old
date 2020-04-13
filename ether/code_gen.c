@@ -287,6 +287,13 @@ static void gen_func_call(Expr* expr) {
 }
 
 static void gen_set_expr(Expr* expr) {
+	print_left_paren();
+	gen_variable_expr(expr->func_call.args[0]);
+	print_space();
+	print_char('=');
+	print_space();
+	gen_expr(expr->func_call.args[1]);
+	print_right_paren();
 }
 
 static void gen_arithmetic_expr(Expr* expr) {
