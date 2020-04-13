@@ -18,6 +18,7 @@ static void gen_field(Field*);
 static void gen_global_var_decls(void);
 static void gen_func_decls(void);
 static void gen_func_decl(Stmt*);
+static void gen_func_prototype(Stmt*);
 static void gen_file(Stmt**);
 static void gen_func(Stmt*);
 static void gen_stmt(Stmt*);
@@ -184,6 +185,12 @@ static void gen_func_decls(void) {
 }
 
 static void gen_func_decl(Stmt* stmt) {
+	gen_func_prototype(stmt);
+	print_semicolon();
+	print_newline();
+}
+
+static void gen_func_prototype(Stmt* stmt) {
 	print_data_type(stmt->func.type);
 	print_space();
 	print_token(stmt->func.identifier);
@@ -199,8 +206,6 @@ static void gen_func_decl(Stmt* stmt) {
 		}
 	}
 	print_right_paren();
-	print_semicolon();
-	print_newline();
 }
 
 static void gen_file(Stmt** stmts) {
@@ -212,9 +217,20 @@ static void gen_file(Stmt** stmts) {
 }
 
 static void gen_func(Stmt* stmt) {
+	gen_func_prototype(stmt);
+
+	print_string(" {\n");
+	Stmt** body = stmt->func.body;
+	tab_count++;
+	for (u64 i = 0; i < buf_len(body); ++i) {
+		gen_stmt(body[i]);
+	}
+	tab_count--;
+	print_string("}\n\n");
 }
 
 static void gen_stmt(Stmt* stmt) {
+	print_tabs_by_indentation();
 	switch (stmt->type) {
 		case STMT_VAR_DECL: gen_var_decl(stmt); break;
 		case STMT_IF: gen_if_stmt(stmt); break;	
