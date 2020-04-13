@@ -24,6 +24,7 @@ static void gen_func(Stmt*);
 static void gen_stmt(Stmt*);
 static void gen_var_decl(Stmt*);
 static void gen_if_stmt(Stmt*);
+static void gen_if_branch(IfBranch*, IfBranchType);
 static void gen_expr_stmt(Stmt*);
 
 static void gen_expr(Expr*);
@@ -266,6 +267,19 @@ static void gen_var_decl(Stmt* stmt) {
 }
 
 static void gen_if_stmt(Stmt* stmt) {
+	gen_if_branch(stmt->if_stmt.if_branch, IF_IF_BRANCH);
+
+	for (u64 i = 0; i < buf_len(stmt->if_stmt.elif_branch); ++i) {
+		gen_if_branch(stmt->if_stmt.elif_branch[i], IF_ELIF_BRANCH);
+	}
+
+	if (stmt->if_stmt.else_branch) {
+		gen_if_branch(stmt->if_stmt.else_branch, IF_ELSE_BRANCH);
+	}
+}
+
+static void gen_if_branch(IfBranch* branch, IfBranchType type) {
+
 }
 
 static void gen_expr_stmt(Stmt* stmt) {
