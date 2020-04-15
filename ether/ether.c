@@ -11,7 +11,7 @@ int main(int argc, char** argv) {
 	}
 
 	Stmt*** stmts_buf = null;
-	
+
 	/* TODO: check if we have to free this pointer.
 	 * is it expensive to keep it around? */
 	SourceFile* srcfile = ether_read_file(argv[1]);

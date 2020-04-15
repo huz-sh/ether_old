@@ -330,7 +330,9 @@ static void gen_number_expr(Expr* expr) {
 }
 
 static void gen_string_expr(Expr* expr) {
+	print_char('\"');
 	print_token(expr->string);
+	print_char('\"');
 }
 
 static void gen_variable_expr(Expr* expr) {
@@ -498,11 +500,13 @@ static void print_char(char c) {
 
 static void compile_output_code(void) {
 	FILE* gcc;
-	gcc = popen("gcc -xc -", "w");
+	gcc = popen("gcc -g -w -nostdlib -c -o bin/main.o -xc -", "w");
 	if (!gcc) {
 		printf("error!"); /* TODO: nice error message */
 		return;
 	}
 	fputs(output_code, gcc);
 	pclose(gcc);
+
+	system("ld -g -o bin/a.out bin/main.o bin/ether_stdlib.o");
 }

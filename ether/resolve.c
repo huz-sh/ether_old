@@ -157,7 +157,8 @@ static DataType* resolve_expr(Expr* expr) {
 }
 
 static DataType* resolve_func_call(Expr* expr) {
-	if (expr->func_call.callee->type == TOKEN_IDENTIFIER) {
+	if (expr->func_call.callee->type == TOKEN_IDENTIFIER &&
+		expr->func_call.function_called) {
 		Stmt* function_called = expr->func_call.function_called;
 		Stmt** params = function_called->func.params;
 		Expr** args = expr->func_call.args;

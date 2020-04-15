@@ -16,10 +16,7 @@
 	[elif [= c 3]
 		[set c 10]]
 	[else
-		[set c 2]]
-	[if 1
-		[if 2
-			[+ 3 3 2]]]]
+		[set c 2]]]
 
 [define console:console_create [int:x int:y]
 	[set c [linux_console_create x y]]]

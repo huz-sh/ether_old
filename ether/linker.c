@@ -4,7 +4,6 @@
 static Stmt*** stmts_all;
 static Stmt** defined_structs;
 static Stmt** defined_functions;
-static bool main_func_found;
 static Scope* global_scope;
 static Scope* current_scope;
 static Scope** all_scopes;
@@ -52,7 +51,6 @@ static void error_without_info(const char*, ...);
 
 void linker_init(Stmt*** stmts_buf) {
 	stmts_all = stmts_buf;
-	main_func_found = false;
 	all_scopes = null;
 	global_scope = make_scope(null);
 	current_scope = global_scope;
@@ -63,11 +61,6 @@ error_code linker_run(void) {
 	 * length of stmts_all */
 	for (u64 file = 0; file < buf_len(stmts_all); ++file) {
 		link_file(stmts_all[file]);		
-	}
-	if (!main_func_found) {
-		error_without_info("'main' symbol not found; did you forget to define 'main'?");
-		linker_destroy();
-		return error_occured;
 	}
 
 	for (u64 file = 0; file < buf_len(stmts_all); ++file) {
@@ -127,10 +120,6 @@ static void add_decl_stmt(Stmt* stmt) {
 					 defined_functions[i]->func.identifier->lexeme);
 				return;
 			}
-		}
-		if (str_intern(stmt->func.identifier->lexeme) ==
-			str_intern("main")) {
-			main_func_found = true;
 		}
 		buf_push(defined_functions, stmt);
 	}
@@ -290,8 +279,8 @@ static void check_func_call(Expr* expr) {
 			}
 		}
 
-		error(expr->func_call.callee,
-			  "undefined function '%s'; did you forget to define '%s'?",
+		warning(expr->func_call.callee,
+			  "implicit declaration of function '%s'; did you forget to define '%s'?",
 			  expr->func_call.callee->lexeme,
 			  expr->func_call.callee->lexeme);
 		return;
