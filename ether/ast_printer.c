@@ -102,7 +102,7 @@ static void print_func(Stmt* stmt) {
 
 static void print_func_header(Stmt* stmt, bool is_function) {
 	if (is_function) {
-		print_string("define ");
+		print_string("defn ");
 	}
 	else {
 		print_string("decl ");

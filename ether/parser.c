@@ -123,14 +123,14 @@ static Stmt* parse_decl(void) {
 		Token* identifier = consume_identifier();
 		stmt = parse_var_decl(type, identifier, true);
 	}
-	else if (match_keyword("define")) {
+	else if (match_keyword("defn")) {
 		stmt = parse_func();
 	}
 	else if (match_keyword("decl")) {
 		stmt = parse_func_decl();
 	}
 	else {
-		error_at_current("expected keyword 'struct', 'define' or 'let' "
+		error_at_current("expected keyword 'struct', 'defn', 'decl' or 'let' "
 						 "in global scope; did you miss a ']'?");
 		return null;
 	}
@@ -164,7 +164,7 @@ static Stmt* parse_stmt(void) {
 						  "did you miss a ']'?");
 		return null;
 	}
-	else if (match_keyword("define")) {
+	else if (match_keyword("defn")) {
 		error(previous(), "cannot define a function inside a function-scope; "
 						  "did you miss a ']'?");
 		return null;

@@ -40,7 +40,7 @@ void lexer_init(SourceFile* src) {
 	last_to_last_newline = null;
 
 	buf_push(keywords, str_intern("struct"));
-	buf_push(keywords, str_intern("define"));
+	buf_push(keywords, str_intern("defn"));
 	buf_push(keywords, str_intern("decl"));	
 	buf_push(keywords, str_intern("let"));
 	buf_push(keywords, str_intern("if"));

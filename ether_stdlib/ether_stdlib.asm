@@ -1,31 +1,63 @@
-global _start
-extern main
+	;; syscall-convention: rdi, rsi, rdx, r10, r8, r9
+	;; call-convention:    rdi, rsi, rdx, rcx, r8, r9 <stack-reverse>
+
+	global _start
+	global puts
+	global putsln	
+	global getc
+	global gets
+	global strlen
+	global exit
+	
+	extern main
+
+	section .text
 _start:
 	call main
 
-	;; calling convention: rdi rsi rdx rcx r8 r9 <stack>
 	mov rdi, 0
 	jmp exit
 
-global putsln	
-putsln:
+puts:
 	push rdi
 	call strlen
 	pop rdi
 	mov rdx, rax
-	mov rax, 4
-	mov rbx, 1
-	mov rcx, rdi
-	int 0x80
-
-	mov rax, 4
-	mov rbx, 1
-	mov rcx, newline
-	mov rdx, 1
-	int 0x80
+	mov rax, 1
+	mov rsi, rdi
+	mov rdi, 1
+	syscall
 	ret
+	
+putsln:
+	call puts
+	mov rax, 1
+	mov rdi, 1
+	mov rsi, newline
+	mov rdx, 1
+	syscall
+	ret
+	
+getc:
+	sub rsp, 8
+	mov rax, 0
+	mov rdi, 0
+	mov rsi, rsp
+	mov rdx, 1
+	syscall
+	mov rax, [rsp]
+	push rax
+	
+	mov rax, 0
+	mov rdi, 0
+	lea rsi, [rsp+8]
+	mov rdx, 1
+	syscall
 
-global strlen
+	pop rax
+	add rsp, 8
+	ret
+	
 strlen:
 	push rcx
 	xor rcx, rcx
@@ -43,12 +75,9 @@ strlen:
 	pop rcx
 	ret
 	
-global exit	
 exit:
-	mov rax, 1
-	mov rbx, rdi
-	int 0x80
-
+	mov rax, 60
+	syscall
 	
-section .data
+	section .data
 newline: db 10

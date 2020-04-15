@@ -3,5 +3,9 @@
 
 [decl void:putsln [char*:c]]
 
-[define int:main [void]
-	[putsln "Hello, world!"]]
+[defn int:main [void]
+	[let int:var 11]
+	[if [= var 10]
+		[putsln "Var is 10!"]]
+	[else
+		[putsln "Var is NOT 10!"]]]
