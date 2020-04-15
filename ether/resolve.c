@@ -1,7 +1,7 @@
 #include <ether/ether.h>
 #include <ether/linker_resolve_code_gen_common.h>
 
-static Stmt*** stmts_all;
+static Stmt** stmts;
 static char** data_type_strings;
 static bool error_occured;
 static bool persistent_error_occured;
@@ -40,8 +40,8 @@ static char* data_type_to_string(DataType*);
 #define EXIT_ERROR(x) if (error_count > current_error) return x
 #define EXIT_ERROR_VOID_RETURN if (error_count > current_error) return
 
-void resolve_init(Stmt*** stmts_buf) {
-	stmts_all = stmts_buf;
+void resolve_init(Stmt** p_stmts) {
+	stmts = p_stmts;
 	data_type_strings = null;
 	error_occured = false;
 	persistent_error_occured = false;
@@ -51,9 +51,7 @@ void resolve_init(Stmt*** stmts_buf) {
 }
 
 error_code resolve_run(void) {
-	for (u64 i = 0; i < buf_len(stmts_all); ++i) {
-		resolve_file(stmts_all[i]);
-	}
+	resolve_file(stmts);
 	resolve_destroy();
 
 	return persistent_error_occured || error_occured;
@@ -66,9 +64,9 @@ static void resolve_destroy(void) {
 	buf_free(data_type_strings);
 }
 
-static void resolve_file(Stmt** stmts) {
-	for (u64 i = 0; i < buf_len(stmts); ++i) {
-		resolve_stmt(stmts[i]);
+static void resolve_file(Stmt** p_stmts) {
+	for (u64 i = 0; i < buf_len(p_stmts); ++i) {
+		resolve_stmt(p_stmts[i]);
 	}	
 }
 

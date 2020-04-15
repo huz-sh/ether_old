@@ -6,11 +6,10 @@
 inline static void quit(void);
 
 int main(int argc, char** argv) {
-	if (argc < 2) {
-		ether_error("no input files supplied");
+	if (argc != 2) {
+		ether_error("requires one ether source file to operate; exiting...");
 	}
-
-	Stmt*** stmts_buf = null;
+	/* TODO: check file extension */
 
 	/* TODO: check if we have to free this pointer.
 	 * is it expensive to keep it around? */
@@ -38,7 +37,6 @@ int main(int argc, char** argv) {
 	parser_init(tokens);
 	Stmt** stmts = parser_run(&err);
 	if (err == ETHER_ERROR) quit();
-	buf_push(stmts_buf, stmts);
 
 #if PRINT_AST
 	printf("--- AST ---\n");
@@ -46,15 +44,15 @@ int main(int argc, char** argv) {
 	printf("--- END ---\n");
 #endif
 
-	linker_init(stmts_buf);
+	linker_init(stmts);
 	err = linker_run();
 	if (err == ETHER_ERROR) quit();
 
-	resolve_init(stmts_buf);
+	resolve_init(stmts);
 	err = resolve_run();
 	if (err == ETHER_ERROR) quit();
 
-	code_gen_init(stmts_buf);
+	code_gen_init(stmts, srcfile);
 	code_gen_run();
 }
 

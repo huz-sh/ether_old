@@ -1,5 +1,6 @@
 #include <ether/ether.h>
 
+
 static Token** tokens;
 static u64 tokens_len;
 static Stmt** stmts;
@@ -17,7 +18,9 @@ static void parser_destroy(void);
 static Stmt* parse_decl(void);
 static Stmt* parse_stmt(void);
 static Stmt* parse_struct(Token*);
-static Stmt* parse_func(DataType*, Token*);
+static Stmt* parse_func(void);
+static error_code parse_func_header(Stmt*, bool);
+static Stmt* parse_func_decl(void);
 static Stmt* parse_var_decl(DataType*, Token*, bool);
 static Stmt* parse_if_stmt(void);
 static void parse_if_branch(Stmt*, IfBranchType);
@@ -85,6 +88,7 @@ void parser_init(Token** tokens_buf) {
 	buf_push(built_in_data_types, str_intern("int"));
 	buf_push(built_in_data_types, str_intern("char"));
 	buf_push(built_in_data_types, str_intern("bool"));
+
 	buf_push(built_in_data_types, str_intern("void"));
 }
 
@@ -120,11 +124,10 @@ static Stmt* parse_decl(void) {
 		stmt = parse_var_decl(type, identifier, true);
 	}
 	else if (match_keyword("define")) {
-		DataType* type = consume_data_type(); /* TODO: to refactor */
-		consume_colon();
-		Token* identifier = consume_identifier();
-		consume_left_bracket();
-		stmt = parse_func(type, identifier);
+		stmt = parse_func();
+	}
+	else if (match_keyword("decl")) {
+		stmt = parse_func_decl();
 	}
 	else {
 		error_at_current("expected keyword 'struct', 'define' or 'let' "
@@ -202,7 +205,31 @@ static Stmt* parse_struct(Token* identifier) {
 	return new;
 }
 
-static Stmt* parse_func(DataType* d, Token* t) {
+static Stmt* parse_func(void) {
+	MAKE_STMT(new);
+	error_code header_parsing_error = parse_func_header(new, true);
+	if (header_parsing_error != ETHER_SUCCESS) return null;
+
+	Stmt** body = null;
+	while (!match_right_bracket()) {
+		CUR_ERROR;
+		CHECK_EOF(null);
+		Stmt* stmt = parse_stmt();
+		if (stmt) buf_push(body, stmt);
+		EXIT_ERROR null;
+	}
+
+	new->type = STMT_FUNC;
+	new->func.body = body;
+	return new;
+}
+
+static error_code parse_func_header(Stmt* stmt, bool is_function) {
+	DataType* type = consume_data_type(); 
+	consume_colon();
+	Token* identifier = consume_identifier();
+	consume_left_bracket();
+	
 	Stmt** params = null;
 	if (match_keyword("void")) {
 		consume_right_bracket();
@@ -228,26 +255,25 @@ static Stmt* parse_func(DataType* d, Token* t) {
 			param->var_decl.is_global_var = false;
 			buf_push(params, param);
 			
-			EXIT_ERROR null;
-			CHECK_EOF(null);
+			EXIT_ERROR ETHER_ERROR;
+			CHECK_EOF(ETHER_ERROR);
 		} while (!match_right_bracket());
 	}
 
-	Stmt** body = null;
-	while (!match_right_bracket()) {
-		CUR_ERROR;
-		CHECK_EOF(null);
-		Stmt* stmt = parse_stmt();
-		if (stmt) buf_push(body, stmt);
-		EXIT_ERROR null;
-	}
+	stmt->func.type = type;
+	stmt->func.identifier = identifier;
+	stmt->func.params = params;
+	stmt->func.is_function = is_function;
+	return ETHER_SUCCESS;
+}
 
+static Stmt* parse_func_decl(void) {
 	MAKE_STMT(new);
+	error_code header_parsing_error = parse_func_header(new, false);
+	if (header_parsing_error != ETHER_SUCCESS) return null;
+	consume_right_bracket();
+
 	new->type = STMT_FUNC;
-	new->func.type = d;
-	new->func.identifier = t;
-	new->func.params = params;
-	new->func.body = body;
 	return new;
 }
 

@@ -3,7 +3,8 @@
 FILE* popen(const char*, const char*);
 int pclose(FILE*);
 
-static Stmt*** stmts_all;
+static Stmt** stmts;
+static SourceFile* srcfile;
 static char* output_code;
 static uint tab_count;
 
@@ -54,8 +55,9 @@ static void print_char(char);
 
 static void compile_output_code(void);
 
-void code_gen_init(Stmt*** stmts_buf) {
-	stmts_all = stmts_buf;
+void code_gen_init(Stmt** p_stmts, SourceFile* p_srcfile) {
+	stmts = p_stmts;
+	srcfile = p_srcfile;
 	output_code = null;
 	tab_count = 0;
 }
@@ -66,9 +68,7 @@ void code_gen_run(void) {
 	gen_global_var_decls();
 	gen_func_decls();
 	
-	for (u64 i = 0; i < buf_len(stmts_all); ++i) {
-		gen_file(stmts_all[i]);
-	}
+	gen_file(stmts);
 	buf_push(output_code, '\0');
 	printf("%s", output_code); /* TODO: remove this */
 
@@ -82,12 +82,10 @@ static void code_gen_destroy(void) {
 }
 
 static void gen_struct_decls(void) {
-	for (u64 file = 0; file < buf_len(stmts_all); ++file) {
-		for (u64 stmt = 0; stmt < buf_len(stmts_all[file]); ++stmt) {
-			Stmt* current_stmt = stmts_all[file][stmt];
-			if (current_stmt->type == STMT_STRUCT) {
-				gen_struct_decl(current_stmt);
-			}
+	for (u64 stmt = 0; stmt < buf_len(stmts); ++stmt) {
+		Stmt* current_stmt = stmts[stmt];
+		if (current_stmt->type == STMT_STRUCT) {
+			gen_struct_decl(current_stmt);
 		}
 	}
 	print_newline();
@@ -103,12 +101,10 @@ static void gen_struct_decl(Stmt* stmt) {
 }
 
 static void gen_structs(void) {
-	for (u64 file = 0; file < buf_len(stmts_all); ++file) {
-		for (u64 stmt = 0; stmt < buf_len(stmts_all[file]); ++stmt) {
-			Stmt* current_stmt = stmts_all[file][stmt];
-			if (current_stmt->type == STMT_STRUCT) {
-				gen_struct(current_stmt);
-			}
+	for (u64 stmt = 0; stmt < buf_len(stmts); ++stmt) {
+		Stmt* current_stmt = stmts[stmt];
+		if (current_stmt->type == STMT_STRUCT) {
+			gen_struct(current_stmt);
 		}
 	}
 }
@@ -168,26 +164,22 @@ static void gen_field(Field* field) {
 }
 
 static void gen_global_var_decls(void) {
-	for (u64 file = 0; file < buf_len(stmts_all); ++file) {
-		for (u64 stmt = 0; stmt < buf_len(stmts_all[file]); ++stmt) {
-			Stmt* current_stmt = stmts_all[file][stmt];
-			if (current_stmt->type == STMT_VAR_DECL) {
-				gen_var_decl(current_stmt);
-			}
+	for (u64 stmt = 0; stmt < buf_len(stmts); ++stmt) {
+		Stmt* current_stmt = stmts[stmt];
+		if (current_stmt->type == STMT_VAR_DECL) {
+			gen_var_decl(current_stmt);
 		}
 	}
 	print_newline();
 }
 
 static void gen_func_decls(void) {
-	for (u64 file = 0; file < buf_len(stmts_all); ++file) {
-		for (u64 stmt = 0; stmt < buf_len(stmts_all[file]); ++stmt) {
-			Stmt* current_stmt = stmts_all[file][stmt];
+		for (u64 stmt = 0; stmt < buf_len(stmts); ++stmt) {
+			Stmt* current_stmt = stmts[stmt];
 			if (current_stmt->type == STMT_FUNC) {
 				gen_func_decl(current_stmt);
 			}
 		}
-	}
 	print_newline();
 }
 
@@ -216,10 +208,12 @@ static void gen_func_prototype(Stmt* stmt) {
 	print_right_paren();
 }
 
-static void gen_file(Stmt** stmts) {
-	for (u64 i = 0; i < buf_len(stmts); ++i) {
-		if (stmts[i]->type == STMT_FUNC) {
-			gen_func(stmts[i]);
+static void gen_file(Stmt** p_stmts) {
+	for (u64 i = 0; i < buf_len(p_stmts); ++i) {
+		if (p_stmts[i]->type == STMT_FUNC) {
+			if (p_stmts[i]->func.is_function) {
+				gen_func(p_stmts[i]);
+			}
 		}
 	}	
 }
@@ -500,13 +494,31 @@ static void print_char(char c) {
 
 static void compile_output_code(void) {
 	FILE* gcc;
-	gcc = popen("gcc -g -w -nostdlib -c -o bin/main.o -xc -", "w");
+	char* command_first_part = "gcc -g -w -nostdlib -c -o ";
+	u64 command_first_part_len = strlen(command_first_part);
+	
+	char* command_last_part = " -xc -";
+	u64 command_last_part_len = strlen(command_last_part);
+
+	u64 filename_len = (strlen(srcfile->fpath) - 2);
+	u64 command_len = command_first_part_len +
+					  command_last_part_len +
+					  filename_len;
+	char* command = malloc(command_len + 1);
+	strncpy(command, command_first_part, command_first_part_len);
+	strncpy(command + command_first_part_len,
+			srcfile->fpath, filename_len - 1);
+	command[command_first_part_len + filename_len - 1] = 'o';
+	strncpy(command + command_first_part_len + filename_len,
+			command_last_part, command_last_part_len);
+	command[command_len] = '\0';
+	printf(command);
+	
+	gcc = popen(command, "w");
 	if (!gcc) {
 		printf("error!"); /* TODO: nice error message */
 		return;
 	}
 	fputs(output_code, gcc);
 	pclose(gcc);
-
-	system("ld -g -o bin/a.out bin/main.o bin/ether_stdlib.o");
 }

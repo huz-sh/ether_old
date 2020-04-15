@@ -6,6 +6,8 @@ static void print_stmt(Stmt*);
 static void print_stmt_with_newline(Stmt*);
 static void print_struct(Stmt*);
 static void print_func(Stmt*);
+static void print_func_header(Stmt*, bool);
+static void print_func_decl(Stmt*);
 static void print_var_decl(Stmt*);
 static void print_if_stmt(Stmt*);
 static void print_if_branch(IfBranch*, IfBranchType);
@@ -44,11 +46,18 @@ static void print_stmt(Stmt* stmt) {
 	if (stmt->type != STMT_EXPR &&
 		stmt->type != STMT_IF)		print_left_bracket();
 	switch (stmt->type) {
-		case STMT_STRUCT:	print_struct(stmt); break;
-		case STMT_FUNC:		print_func(stmt); break;
-		case STMT_VAR_DECL: print_var_decl(stmt); break;
-		case STMT_IF:		print_if_stmt(stmt); break;
-		case STMT_EXPR:		print_expr_stmt(stmt); break;
+		case STMT_STRUCT:		print_struct(stmt); break;
+		case STMT_FUNC: {
+			if (stmt->func.is_function) {
+				print_func(stmt);
+			}
+			else {
+				print_func_decl(stmt);
+			}
+		} break;
+		case STMT_VAR_DECL: 	print_var_decl(stmt); break;
+		case STMT_IF:			print_if_stmt(stmt); break;
+		case STMT_EXPR:			print_expr_stmt(stmt); break;
 	}
 	if (stmt->type != STMT_EXPR &&
 		stmt->type != STMT_IF)		print_right_bracket();
@@ -77,7 +86,27 @@ static void print_struct(Stmt* stmt) {
 }
 
 static void print_func(Stmt* stmt) {
-	print_string("define ");
+	print_func_header(stmt, true);
+	
+	print_newline();
+	tab_count++;
+	u64 body_len = buf_len(stmt->func.body);
+	for (u64 i = 0; i < body_len; ++i) {
+		print_stmt(stmt->func.body[i]);
+		if (i < (body_len - 1)) {
+			print_newline();
+		}
+	}
+	tab_count--;
+}
+
+static void print_func_header(Stmt* stmt, bool is_function) {
+	if (is_function) {
+		print_string("define ");
+	}
+	else {
+		print_string("decl ");
+	}
 	print_data_type(stmt->func.type);
 	print_colon();
 	print_token(stmt->func.identifier);
@@ -96,17 +125,10 @@ static void print_func(Stmt* stmt) {
 		}
 	}
 	print_right_bracket();
-	
-	print_newline();
-	tab_count++;
-	u64 body_len = buf_len(stmt->func.body);
-	for (u64 i = 0; i < body_len; ++i) {
-		print_stmt(stmt->func.body[i]);
-		if (i < (body_len - 1)) {
-			print_newline();
-		}
-	}
-	tab_count--;
+}
+
+static void print_func_decl(Stmt* stmt) {
+	print_func_header(stmt, false);
 }
 
 static void print_var_decl(Stmt* stmt) {

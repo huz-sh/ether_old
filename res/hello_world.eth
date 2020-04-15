@@ -1,5 +1,7 @@
 ;; note that Ether's semantics are not finalized, and can be 
 ;; changed during development. so do not adhere to this syntax.
 
+[decl void:putsln [char*:c]]
+
 [define int:main [void]
 	[putsln "Hello, world!"]]

@@ -1,7 +1,7 @@
 #include <ether/ether.h>
 #include <ether/linker_resolve_code_gen_common.h>
 
-static Stmt*** stmts_all;
+static Stmt** stmts;
 static Stmt** defined_structs;
 static Stmt** defined_functions;
 static Scope* global_scope;
@@ -20,6 +20,7 @@ static void check_file(Stmt**);
 static void check_stmt(Stmt*);
 static void check_struct(Stmt*);
 static void check_func(Stmt*);
+static void check_func_decl(Stmt*);
 static void check_global_var_decl(Stmt*);
 static void check_var_decl(Stmt*);
 static void check_if_stmt(Stmt*);
@@ -36,11 +37,10 @@ static void check_data_type(DataType*);
 static Stmt* check_data_type_return_struct_if_identifier(DataType*_type);
 static void check_if_variable_is_in_scope(Expr*);
 static bool is_variable_declared(Stmt*);
+static bool func_decls_match(Stmt*, Stmt*);
 
 static Scope* make_scope(Scope*);
 static void add_variable_to_scope(Stmt*);
-
-static void error_without_info(const char*, ...);
 
 #define CHANGE_SCOPE(x) \
 	Scope* x = make_scope(current_scope); \
@@ -49,8 +49,8 @@ static void error_without_info(const char*, ...);
 #define REVERT_SCOPE(x) \
 	current_scope = x->parent_scope;
 
-void linker_init(Stmt*** stmts_buf) {
-	stmts_all = stmts_buf;
+void linker_init(Stmt** p_stmts) {
+	stmts = p_stmts;
 	all_scopes = null;
 	global_scope = make_scope(null);
 	current_scope = global_scope;
@@ -59,13 +59,8 @@ void linker_init(Stmt*** stmts_buf) {
 error_code linker_run(void) {
 	/* we assume that the length of srcfiles is equal to the 
 	 * length of stmts_all */
-	for (u64 file = 0; file < buf_len(stmts_all); ++file) {
-		link_file(stmts_all[file]);		
-	}
-
-	for (u64 file = 0; file < buf_len(stmts_all); ++file) {
-		check_file(stmts_all[file]);
-	}
+	link_file(stmts);		
+	check_file(stmts);
 	
 	linker_destroy();
 	return error_occured;
@@ -85,9 +80,9 @@ static void linker_destroy(void) {
 	current_scope = null;
 }
 
-static void link_file(Stmt** stmts) {
-	for (u64 i = 0; i < buf_len(stmts); ++i) {
-		add_decl_stmt(stmts[i]);
+static void link_file(Stmt** p_stmts) {
+	for (u64 i = 0; i < buf_len(p_stmts); ++i) {
+		add_decl_stmt(p_stmts[i]);
 	}
 }
 
@@ -112,13 +107,20 @@ static void add_decl_stmt(Stmt* stmt) {
 		for (u64 i = 0; i < buf_len(defined_functions); ++i) {
 			if (is_token_identical(stmt->func.identifier,
 								   defined_functions[i]->func.identifier)) {
-				error(stmt->func.identifier,
-					  "redefinition of function '%s':",
-					  stmt->func.identifier->lexeme);
-				note(defined_functions[i]->func.identifier,
-					 "function '%s' previously defined here: ",
-					 defined_functions[i]->func.identifier->lexeme);
-				return;
+				if (stmt->func.is_function) {
+					error(stmt->func.identifier,
+						  "redefinition of function '%s':",
+						  stmt->func.identifier->lexeme);
+					note(defined_functions[i]->func.identifier,
+						 "function '%s' previously defined here: ",
+						 defined_functions[i]->func.identifier->lexeme);
+					return;
+				}
+				else {
+					if (!func_decls_match(defined_functions[i], stmt)) {
+						return;
+					}
+				}
 			}
 		}
 		buf_push(defined_functions, stmt);
@@ -131,16 +133,24 @@ static void add_decl_stmt(Stmt* stmt) {
 	}
 }
 
-static void check_file(Stmt** stmts) {
-	for (u64 i = 0; i < buf_len(stmts); ++i) {
-		check_stmt(stmts[i]);
+static void check_file(Stmt** p_stmts) {
+	for (u64 i = 0; i < buf_len(p_stmts); ++i) {
+		check_stmt(p_stmts[i]);
 	}
 }
 
 static void check_stmt(Stmt* stmt) {
 	switch (stmt->type) {
 		case STMT_STRUCT: check_struct(stmt); break;
-		case STMT_FUNC: check_func(stmt); break;
+		case STMT_FUNC: {
+			if (stmt->func.is_function) {
+				check_func(stmt);
+			}
+			else {
+				check_func_decl(stmt);
+			}
+		} break;
+			
 		case STMT_VAR_DECL: {
 			if (stmt->var_decl.is_global_var) {
 				check_global_var_decl(stmt);
@@ -179,6 +189,18 @@ static void check_func(Stmt* stmt) {
 	
 	for (u64 i = 0; i < buf_len(stmt->func.body); ++i) {
 		check_stmt(stmt->func.body[i]);
+	}
+	REVERT_SCOPE(scope);
+}
+
+static void check_func_decl(Stmt* stmt) {
+	check_data_type(stmt->func.type);
+	CHANGE_SCOPE(scope);
+
+	for (u64 param = 0; param < buf_len(stmt->func.params); ++param) {
+		if (!is_variable_declared(stmt->func.params[param])) {
+			add_variable_to_scope(stmt->func.params[param]);
+		}
 	}
 	REVERT_SCOPE(scope);
 }
@@ -424,6 +446,58 @@ static bool is_variable_declared(Stmt* var) {
 	return false;
 }
 
+static bool func_decls_match(Stmt* a, Stmt* b) {
+	bool do_match = true;
+	if (str_intern(a->func.type->type->lexeme) !=
+		str_intern(b->func.type->type->lexeme)) {
+		error(b->func.type->type,
+			  "conflicting return types for function '%s';",
+			  a->func.identifier->lexeme);
+		note(a->func.type->type,
+			 "previously declared/defined here: ");
+		do_match = false;
+	}
+
+	bool do_params_count_match = true;
+	if (buf_len(a->func.params) != buf_len(b->func.params)) {
+		error(b->func.identifier,
+			  "conflicting parameter count for function '%s';",
+			  a->func.identifier->lexeme);
+		note(a->func.type->type,
+			 "previously declared/defined here: ");
+		do_match = false;
+		do_params_count_match = false;
+	}
+
+	if (do_params_count_match) {
+		for (u64 i = 0; i < buf_len(a->func.params); ++i) {
+			if ((str_intern(a->func.params[i]->var_decl.type->type->lexeme) !=
+				 str_intern(b->func.params[i]->var_decl.type->type->lexeme)) ||
+				a->func.params[i]->var_decl.type->pointer_count !=
+				b->func.params[i]->var_decl.type->pointer_count) {
+				error(b->func.params[i]->var_decl.type->type,
+					  "conflicting parameter types for function '%s'",
+					  a->func.identifier->lexeme);
+				note(a->func.params[i]->var_decl.type->type,
+					 "previously declared/defined here: ");
+				do_match = false;
+			}
+
+			if (str_intern(a->func.params[i]->var_decl.identifier->lexeme) !=
+				str_intern(a->func.params[i]->var_decl.identifier->lexeme)) {
+				error(b->func.params[i]->var_decl.identifier,
+					  "conflicting parameter names for function '%s'",
+					  a->func.identifier->lexeme);
+				note(a->func.params[i]->var_decl.identifier,
+					 "previously declared/defined here: ");
+				do_match = false;
+			}
+		}
+	}
+
+	return do_match;
+}
+
 static void check_if_variable_is_in_scope(Expr* expr) {
 	Scope* scope = current_scope;
 	while (scope != null) {
@@ -452,16 +526,4 @@ static Scope* make_scope(Scope* parent_scope) {
 
 static void add_variable_to_scope(Stmt* var) {
 	buf_push(current_scope->variables, var);
-}
-
-static void error_without_info(const char* fmt, ...) {
-	va_list ap;
-	va_start(ap, fmt);
-	printf("error: ");
-	vprintf(fmt, ap);
-	va_end(ap);
-	printf("\n");
-
-	error_occured = ETHER_ERROR;
-	++error_count;	
 }

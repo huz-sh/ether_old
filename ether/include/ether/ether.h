@@ -187,6 +187,7 @@ typedef struct {
 	Token* identifier;
 	Stmt** params; /* param is a statement to make it easier to add to scope */
 	Stmt** body;
+	bool is_function; /* false if decl */
 } Func;
 
 typedef struct {
@@ -245,13 +246,13 @@ void token_error(bool* error_occured, uint* error_count,
 void token_warning(Token* t, const char* fmt, ...);
 void token_note(Token* token, const char* fmt, ...);
 
-void linker_init(Stmt*** stmts_buf);
+void linker_init(Stmt** p_stmts);
 error_code linker_run(void);
 
-void resolve_init(Stmt*** stmts_buf);
+void resolve_init(Stmt** p_stmts);
 error_code resolve_run(void);
 
-void code_gen_init(Stmt*** stmts_buf);
+void code_gen_init(Stmt** p_stmts, SourceFile* p_srcfile);
 void code_gen_run(void);
 
 #endif
