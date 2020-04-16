@@ -108,6 +108,7 @@ typedef enum {
 	TOKEN_IDENTIFIER,
 	TOKEN_KEYWORD,
 	TOKEN_NUMBER,
+	TOKEN_CHAR,
 	TOKEN_STRING,
 
 	TOKEN_EOF,
@@ -128,6 +129,7 @@ Token** lexer_run(error_code* out_error_code);
 
 typedef enum {
 	EXPR_NUMBER,
+	EXPR_CHAR,
 	EXPR_STRING,
 	EXPR_VARIABLE,
 	EXPR_FUNC_CALL,
@@ -154,6 +156,7 @@ struct Expr {
 		FuncCall func_call;
 		VariableRef variable;
 		Token* number;
+		Token* chr;
 		Token* string;
 	};
 };

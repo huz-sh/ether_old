@@ -262,6 +262,7 @@ static void check_expr(Expr* expr) {
 		case EXPR_FUNC_CALL: check_func_call(expr); break;
 		case EXPR_VARIABLE: check_variable_expr(expr); break;
 		case EXPR_NUMBER:
+		case EXPR_CHAR:	
 		case EXPR_STRING: break;
 	}
 }

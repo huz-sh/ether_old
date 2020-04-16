@@ -1,6 +1,6 @@
 #include <ether/ether.h>
 
-#define PRINT_TOKENS 0
+#define PRINT_TOKENS 1
 #define PRINT_AST	 1
 
 inline static void quit(void);
@@ -28,7 +28,7 @@ int main(int argc, char** argv) {
 	for (uint i = 0; i < buf_len(tokens); ++i) {
 		printf("token: '%s' (%d) at line %ld, col %d\n",
 			   (tokens[i]->lexeme), tokens[i]->type,
-			   tokens[i]->line, tokens[i]->col);
+			   tokens[i]->line, tokens[i]->column);
 	}
 	printf("--- END ---\n\n");
 #endif

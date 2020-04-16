@@ -30,6 +30,7 @@ static void gen_expr_stmt(Stmt*);
 
 static void gen_expr(Expr*);
 static void gen_number_expr(Expr*);
+static void gen_char_expr(Expr*);
 static void gen_string_expr(Expr*);
 static void gen_variable_expr(Expr*);
 static void gen_func_call(Expr*);
@@ -313,6 +314,7 @@ static void gen_expr_stmt(Stmt* stmt) {
 static void gen_expr(Expr* expr) {
 	switch (expr->type) {
 		case EXPR_NUMBER: gen_number_expr(expr); break;
+		case EXPR_CHAR: gen_char_expr(expr); break;	
 		case EXPR_STRING: gen_string_expr(expr); break;
 		case EXPR_VARIABLE: gen_variable_expr(expr); break;
 		case EXPR_FUNC_CALL: gen_func_call(expr); break;	
@@ -321,6 +323,12 @@ static void gen_expr(Expr* expr) {
 
 static void gen_number_expr(Expr* expr) {
 	print_token(expr->number);
+}
+
+static void gen_char_expr(Expr* expr) {
+	print_char('\'');
+	print_token(expr->chr);
+	print_char('\'');
 }
 
 static void gen_string_expr(Expr* expr) {

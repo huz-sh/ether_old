@@ -12,6 +12,7 @@ static bool persistent_error_occured;
 static uint error_count;
 
 static DataType* int_data_type;
+static DataType* char_data_type;
 static DataType* string_data_type;
 static DataType* bool_data_type;
 
@@ -164,6 +165,7 @@ static DataType* resolve_expr(Expr* expr) {
 	switch (expr->type) {
 		case EXPR_NUMBER:	 return resolve_number_expr(expr);
 		case EXPR_STRING:	 return string_data_type;
+		case EXPR_CHAR:		 return char_data_type;	
 		case EXPR_VARIABLE:  return resolve_variable_expr(expr);
 		case EXPR_FUNC_CALL: return resolve_func_call(expr);
 	}
@@ -328,6 +330,7 @@ static DataType* resolve_number_expr(Expr* expr) {
 
 static void init_data_types(void) {
 	int_data_type = make_data_type("int", 0);
+	char_data_type = make_data_type("char", 0);
 	string_data_type = make_data_type("char", 1);
 	bool_data_type = make_data_type("bool", 0);
 }

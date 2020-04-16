@@ -17,6 +17,7 @@ static void lexer_destroy(void);
 static void lex_identifier(void);
 static void lex_number(void);
 static void lex_string(void);
+static void lex_char(void);
 static void lex_comment(void);
 static void lex_newline(void);
 
@@ -69,6 +70,7 @@ Token** lexer_run(error_code* out_error_code) {
 			case ',': add_token(TOKEN_COMMA); break;
 				
 			case '"':  lex_string(); break;
+			case '\'': lex_char(); break;	
 			case '\n': lex_newline(); break;
 
 			case '\t':
@@ -197,6 +199,18 @@ static void lex_string(void) {
 	}
 	--cur;
 	add_token(TOKEN_STRING);
+	++cur;
+}
+
+static void lex_char(void) {
+	++start;
+	cur += 2;
+	/* TODO: escape sequences */
+	if ((*cur) != '\'') {
+		error_at_current("missing terminating \"'\"");
+	}
+	--cur;
+	add_token(TOKEN_CHAR);
 	++cur;
 }
 
