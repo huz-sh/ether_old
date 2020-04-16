@@ -1,6 +1,10 @@
 #include <ether/ether.h>
 #include <ether/linker_resolve_code_gen_common.h>
 
+#define DATA_TYPE_MATCH 1
+#define DATA_TYPE_IMPLICIT_MATCH 2
+#define DATA_TYPE_NOT_MATCH 0
+
 static Stmt** stmts;
 static char** data_type_strings;
 static bool error_occured;
@@ -32,7 +36,7 @@ static DataType* resolve_number_expr(Expr*);
 static void init_data_types(void);
 static DataType* make_data_type(const char*, u8);
 static Token* make_token_from_string(const char*);
-static bool data_type_match(DataType*, DataType*);
+static int data_type_match(DataType*, DataType*);
 static char* data_type_to_string(DataType*);
 
 #define CHECK_ERROR uint current_error = error_count
@@ -97,14 +101,21 @@ static void resolve_var_decl(Stmt* stmt) {
 		DataType* defined_type = stmt->var_decl.type;
 		DataType* initializer_type = resolve_expr(stmt->var_decl.initializer);
 		EXIT_ERROR_VOID_RETURN;
-		
-		if (!data_type_match(defined_type, initializer_type)) {
+
+		int match = data_type_match(defined_type, initializer_type);
+		if (match == DATA_TYPE_NOT_MATCH) {
 			error(stmt->var_decl.initializer->head,
 				  "cannot initialize variable type '%s' from intializer "
 				  "expression type '%s';",
 				  data_type_to_string(defined_type),
 				  data_type_to_string(initializer_type));
 			return;
+		}
+		else if (match == DATA_TYPE_IMPLICIT_MATCH) {
+			warning(stmt->var_decl.initializer->head,
+					"implicit cast from '%s' to '%s';",
+					data_type_to_string(defined_type),
+					data_type_to_string(initializer_type));
 		}
 	}
 }
@@ -126,11 +137,17 @@ static void resolve_if_branch(IfBranch* branch, IfBranchType type) {
 		CHECK_ERROR;
 		DataType* expr_type = resolve_expr(branch->cond);
 		EXIT_ERROR_VOID_RETURN;
-		
-		if (!data_type_match(expr_type, bool_data_type)) {
+
+		int match = data_type_match(expr_type, bool_data_type);
+		if (match == DATA_TYPE_NOT_MATCH) {
 			error(branch->cond->head,
 				  "expected 'bool' data type in 'if' condition expression, "
 				  "but got '%s';", data_type_to_string(expr_type));
+		}
+		else if (match == DATA_TYPE_IMPLICIT_MATCH) {
+			warning(branch->cond->head,
+					"implicit cast to 'bool' from '%s' in 'if' condition expression;",
+					data_type_to_string(expr_type));
 		}
 	}
 
@@ -168,8 +185,8 @@ static DataType* resolve_func_call(Expr* expr) {
 			DataType* arg_type = resolve_expr(args[i]);
 			EXIT_ERROR(null);
 
-			/*  TODO: match all data types, and then return */
-			if (!data_type_match(param_type, arg_type)) {
+			int match = data_type_match(param_type, arg_type);
+			if (match == DATA_TYPE_NOT_MATCH) {
 				error(args[i]->head,
 					  "expected type '%s', but got '%s';",
 					  data_type_to_string(param_type),
@@ -179,6 +196,12 @@ static DataType* resolve_func_call(Expr* expr) {
 					 function_called->func.identifier->lexeme);
 				/* TODO: check if we have to return null here */
 				did_error_occur = true;
+			}
+			else if (match == DATA_TYPE_IMPLICIT_MATCH) {
+				warning(args[i]->head,
+						"implicit cast from '%s' to '%s';",
+						data_type_to_string(param_type),
+						data_type_to_string(arg_type));						
 			}
 		}
 		if (did_error_occur) {
@@ -215,8 +238,9 @@ static DataType* resolve_set_expr(Expr* expr) {
 	DataType* var_type = resolve_variable_expr(expr->func_call.args[0]);
 	DataType* expr_type = resolve_expr(expr->func_call.args[1]);
 	EXIT_ERROR(null);
-	
-	if (!data_type_match(var_type, expr_type)) {
+
+	int match = data_type_match(var_type, expr_type);
+	if (match == DATA_TYPE_NOT_MATCH) {
 		Stmt* var_decl = expr->func_call.args[0]->variable.variable_decl_referenced;
 		error(expr->func_call.args[1]->head,
 			  "cannot set variable type '%s' to expression type '%s'",
@@ -231,6 +255,12 @@ static DataType* resolve_set_expr(Expr* expr) {
 		/* TODO: check what to return here */
 		return null;
 	}
+	else if (match == DATA_TYPE_IMPLICIT_MATCH) {
+		warning(expr->func_call.args[1]->head,
+				"implicit cast from '%s' to '%s';",
+				data_type_to_string(expr_type),
+				data_type_to_string(var_type));
+	}
 	return var_type;
 }
 
@@ -241,7 +271,10 @@ static DataType* resolve_arithmetic_expr(Expr* expr) {
 	for (u64 i = 0; i < buf_len(args); ++i) {
 		DataType* arg_type = resolve_expr(args[i]);
 		if (arg_type != null) {
-			if (!data_type_match(arg_type, int_data_type)) {
+			/* TODO: if all args are of same integer type, then
+			 * no warnings are to be outputted */
+			int match = data_type_match(arg_type, int_data_type);
+			if (match == DATA_TYPE_NOT_MATCH) {
 				error(args[i]->head,
 					  "'%s' operator can only operate on type '%s', but "
 					  "got expression type '%s'",
@@ -249,7 +282,7 @@ static DataType* resolve_arithmetic_expr(Expr* expr) {
 					  "int",
 					  data_type_to_string(arg_type));
 				did_error_occur = true;
-			}
+			}						
 		}
 		else did_error_occur = true;
 	}
@@ -265,14 +298,21 @@ static DataType* resolve_comparison_expr(Expr* expr) {
 	DataType* a_expr_type = resolve_expr(expr->func_call.args[0]);
 	DataType* b_expr_type = resolve_expr(expr->func_call.args[1]);
 	EXIT_ERROR(null);
-	
-	if (!data_type_match(a_expr_type, b_expr_type)) {
+
+	int match = data_type_match(a_expr_type, b_expr_type);
+	if (match == DATA_TYPE_NOT_MATCH) {
 		error(expr->func_call.args[1]->head,
 			  "'%s': cannot compare conflicting types '%s' and '%s'",
 			  expr->func_call.callee->lexeme,
 			  data_type_to_string(a_expr_type),
 			  data_type_to_string(b_expr_type));
 		return null;
+	}
+	else if (match == DATA_TYPE_IMPLICIT_MATCH) {
+		warning(expr->func_call.args[1]->head,
+			  "implicit cast from '%s' to '%s';",
+			  data_type_to_string(a_expr_type),
+			  data_type_to_string(b_expr_type));		
 	}
 	return bool_data_type;
 }
@@ -310,15 +350,25 @@ static Token* make_token_from_string(const char* str) {
 	return t;
 }
 
-static bool data_type_match(DataType* a, DataType* b) {
+static int data_type_match(DataType* a, DataType* b) {
 	if (a && b) {
-		if (is_token_identical(a->type, b->type)) {
-			if (a->pointer_count == b->pointer_count) {
-				return true;
+		if (a->pointer_count != b->pointer_count) {
+			return DATA_TYPE_NOT_MATCH;
+		}
+
+		bool main_data_type_identical = is_token_identical(a->type, b->type);
+		if (a->pointer_count > 0) {
+			if (main_data_type_identical) {
+				return DATA_TYPE_MATCH;
 			}
+			return DATA_TYPE_IMPLICIT_MATCH;
+		}
+			
+		if (main_data_type_identical) {
+			return DATA_TYPE_MATCH;
 		}
 	}
-	return false;
+	return DATA_TYPE_NOT_MATCH;
 }
 
 static char* data_type_to_string(DataType* type) {
