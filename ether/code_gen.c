@@ -512,7 +512,9 @@ static void compile_output_code(void) {
 	strncpy(command + command_first_part_len + filename_len,
 			command_last_part, command_last_part_len);
 	command[command_len] = '\0';
+	printf("command: ");
 	printf(command);
+	printf("\n");
 	
 	gcc = popen(command, "w");
 	if (!gcc) {

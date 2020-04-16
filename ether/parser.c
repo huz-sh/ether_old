@@ -1,6 +1,5 @@
 #include <ether/ether.h>
 
-
 static Token** tokens;
 static u64 tokens_len;
 static Stmt** stmts;
@@ -231,7 +230,20 @@ static error_code parse_func_header(Stmt* stmt, bool is_function) {
 	consume_left_bracket();
 	
 	Stmt** params = null;
-	if (match_keyword("void")) {
+	bool has_params = true;
+
+	if (current()->type == TOKEN_KEYWORD) {
+		if (str_intern(current()->lexeme) ==
+			str_intern("void")) {
+			
+			if (idx < tokens_len-1 && tokens[idx+1]->type == TOKEN_RIGHT_BRACKET) {
+				has_params = false;
+			}
+		}
+	}
+	
+	if (!has_params) {
+		goto_next_token();
 		consume_right_bracket();
 	}
 	else if (peek(TOKEN_RIGHT_BRACKET)) {

@@ -1,0 +1,16 @@
+[decl int:getc [void]]
+[decl void:putsln [char*:str]]
+[decl void:puts [char*:str]]
+[decl void:gets [char*:c int:sz]]
+[decl void*:malloc [int:size]]
+
+[defn int:main [void]
+	[let char*:input_buffer]
+	[set input_buffer [malloc 64]]
+
+	[puts "Welcome to Ether! What is your name: "]
+	[gets input_buffer 64]
+
+	[puts "Hello, "]
+	[puts input_buffer]
+	[putsln "!"]]
