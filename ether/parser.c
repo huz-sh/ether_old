@@ -720,4 +720,5 @@ static void init_operator_keywords(void) {
 	buf_push(operator_keywords, str_intern("set"));
 	buf_push(operator_keywords, str_intern("deref"));
 	buf_push(operator_keywords, str_intern("addr"));
+	buf_push(operator_keywords, str_intern("at"));
 }

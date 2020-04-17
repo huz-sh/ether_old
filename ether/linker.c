@@ -31,6 +31,7 @@ static void check_func_call(Expr*);
 static void check_set_expr(Expr*);
 static void check_deref_expr(Expr*);
 static void check_addr_expr(Expr*);
+static void check_at_expr(Expr*);
 static void check_arithmetic_expr(Expr*);
 static void check_comparision_expr(Expr*);
 static void check_variable_expr(Expr*);
@@ -340,6 +341,10 @@ static void check_func_call(Expr* expr) {
 				 str_intern("addr")) {
 			check_addr_expr(expr);
 		}
+		else if (str_intern(expr->func_call.callee->lexeme) ==
+				 str_intern("at")) {
+			check_at_expr(expr);
+		}
 	}
 
 	else {
@@ -382,6 +387,7 @@ static void check_deref_expr(Expr* expr) {
 	u64 args_len = buf_len(expr->func_call.args);
 
 	if (args_len > 1) {
+		/* TODO: change 'at' to a macro */
 		error(expr->func_call.args[1]->head,
 			  "built-in operator 'deref' needs 1 argument to operate, "
 			  "but got %ld argument(s);", args_len);
@@ -395,6 +401,7 @@ static void check_addr_expr(Expr* expr) {
 	u64 args_len = buf_len(expr->func_call.args);
 
 	if (args_len > 1) {
+		/* TODO: change 'at' to a macro */
 		error(expr->func_call.args[1]->head,
 			  "built-in operator 'addr' needs 1 argument to operate, "
 			  "but got %ld argument(s);", args_len);
@@ -402,6 +409,29 @@ static void check_addr_expr(Expr* expr) {
 	}
 
 	check_expr(expr->func_call.args[0]);
+}
+
+static void check_at_expr(Expr* expr) {
+	u64 args_len = buf_len(expr->func_call.args);
+	Token* error_token = null;
+								  
+	if (args_len > 2) {
+		error_token = expr->func_call.args[2]->head;
+	}
+	else if (args_len < 2) {
+		error_token = expr->head;
+	}
+			
+	if (error_token != null) {
+		/* TODO: change 'at' to a macro */
+		error(error_token,
+			  "built-in operator 'at' needs 2 arguments to operate, "
+			  "but got %ld argument(s);", args_len);
+		return;
+	}
+
+	check_expr(expr->func_call.args[0]);
+	check_expr(expr->func_call.args[1]);
 }
 
 static void check_arithmetic_expr(Expr* expr) {

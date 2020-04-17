@@ -8,6 +8,7 @@
 	[let char*:input_buffer]
 	[set input_buffer [malloc 64]]
 	[set [deref input_buffer] 'a']
+	[set [at input_buffer 'a'] 'a']
 
 	[let char**:c [addr input_buffer]]
 	[let void*:mem [deref c]]

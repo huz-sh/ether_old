@@ -29,6 +29,8 @@ static bool is_at_end(void);
 static u32 get_column(void);
 static void error_at_current(const char*, ...);
 
+static void init_keywords(void);
+
 void lexer_init(SourceFile* src) {
 	srcfile = src;
 	tokens = null;
@@ -40,21 +42,7 @@ void lexer_init(SourceFile* src) {
 	last_newline = srcfile->contents;
 	last_to_last_newline = null;
 
-	buf_push(keywords, str_intern("struct"));
-	buf_push(keywords, str_intern("defn"));
-	buf_push(keywords, str_intern("decl"));	
-	buf_push(keywords, str_intern("let"));
-	buf_push(keywords, str_intern("if"));
-	buf_push(keywords, str_intern("elif"));
-	buf_push(keywords, str_intern("else"));	
-	buf_push(keywords, str_intern("set"));
-	buf_push(keywords, str_intern("deref"));
-	buf_push(keywords, str_intern("addr"));
-
-	buf_push(keywords, str_intern("int"));
-	buf_push(keywords, str_intern("char"));
-	buf_push(keywords, str_intern("bool"));
-	buf_push(keywords, str_intern("void"));
+	init_keywords();
 }
 
 Token** lexer_run(error_code* out_error_code) {
@@ -295,4 +283,23 @@ static void error_at_current(const char* msg, ...) {
 
 	error_occured = ETHER_ERROR;
 	++error_count;
+}
+
+static void init_keywords(void) {
+	buf_push(keywords, str_intern("struct"));
+	buf_push(keywords, str_intern("defn"));
+	buf_push(keywords, str_intern("decl"));	
+	buf_push(keywords, str_intern("let"));
+	buf_push(keywords, str_intern("if"));
+	buf_push(keywords, str_intern("elif"));
+	buf_push(keywords, str_intern("else"));	
+	buf_push(keywords, str_intern("set"));
+	buf_push(keywords, str_intern("deref"));
+	buf_push(keywords, str_intern("addr"));
+	buf_push(keywords, str_intern("at"));
+
+	buf_push(keywords, str_intern("int"));
+	buf_push(keywords, str_intern("char"));
+	buf_push(keywords, str_intern("bool"));
+	buf_push(keywords, str_intern("void"));
 }

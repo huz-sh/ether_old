@@ -32,7 +32,8 @@ static DataType* resolve_expr(Expr*);
 static DataType* resolve_func_call(Expr*);
 static DataType* resolve_set_expr(Expr*);
 static DataType* resolve_deref_expr(Expr*);
-static DataType* resolve_addr_expr(Expr*); 
+static DataType* resolve_addr_expr(Expr*);
+static DataType* resolve_at_expr(Expr*); 
 static DataType* resolve_arithmetic_expr(Expr*);
 static DataType* resolve_comparison_expr(Expr*);
 static DataType* resolve_variable_expr(Expr*);
@@ -239,6 +240,10 @@ static DataType* resolve_func_call(Expr* expr) {
 				 str_intern("addr")) {
 			return resolve_addr_expr(expr);
 		}
+		else if (str_intern(expr->func_call.callee->lexeme) ==
+				 str_intern("at")) {
+			return resolve_at_expr(expr);
+		}
 	}
 
 	else {
@@ -264,6 +269,7 @@ static DataType* resolve_set_expr(Expr* expr) {
 
 	int match = data_type_match(var_type, expr_type);
 	if (match == DATA_TYPE_NOT_MATCH) {
+		/* TODO: change to a dot reference OR a variable when adding dot operator */
 		Stmt* var_decl = expr->func_call.args[0]->variable.variable_decl_referenced;
 		error(expr->func_call.args[1]->head,
 			  "cannot set variable type '%s' to expression type '%s'",
@@ -316,6 +322,30 @@ static DataType* resolve_addr_expr(Expr* expr) {
 	DataType* addressed_type = clone_data_type(type);
 	addressed_type->pointer_count++;
 	return addressed_type;
+}
+
+static DataType* resolve_at_expr(Expr* expr) {
+	CHECK_ERROR;
+	DataType* var_type = resolve_expr(expr->func_call.args[0]);
+	DataType* expr_type = resolve_expr(expr->func_call.args[1]);
+	EXIT_ERROR(null);
+
+	int match = data_type_match(int_data_type, expr_type);
+	if (match == DATA_TYPE_NOT_MATCH) {
+		error(expr->func_call.args[1]->head,
+			  "conflicting types (second param): expected an integer here: ");
+		/* TODO: check what to return here */
+		return null;
+	}
+	else if (match == DATA_TYPE_IMPLICIT_MATCH) {
+		implicit_cast_warning(expr->func_call.args[1]->head,
+							  expr_type,
+							  int_data_type);
+	}
+
+	DataType* at_type = clone_data_type(var_type);
+	at_type->pointer_count--;
+	return at_type;
 }
 
 static DataType* resolve_arithmetic_expr(Expr* expr) {

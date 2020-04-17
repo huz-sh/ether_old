@@ -37,6 +37,7 @@ static void gen_func_call(Expr*);
 static void gen_set_expr(Expr*);
 static void gen_deref_expr(Expr*);
 static void gen_addr_expr(Expr*);
+static void gen_at_expr(Expr*);
 static void gen_arithmetic_expr(Expr*);
 static void gen_comparison_expr(Expr*);
 
@@ -373,6 +374,10 @@ static void gen_func_call(Expr* expr) {
 			str_intern("addr")) {
 			gen_addr_expr(expr);
 		}
+		else if (str_intern(expr->func_call.callee->lexeme) ==
+			str_intern("at")) {
+			gen_at_expr(expr);
+		}
 	}
 
 	else {
@@ -411,6 +416,17 @@ static void gen_addr_expr(Expr* expr) {
 	print_left_paren();
 	print_char('&');
 	gen_expr(expr->func_call.args[0]);
+	print_right_paren();
+}
+
+static void gen_at_expr(Expr* expr) {
+	print_left_paren();
+	print_left_paren();
+	gen_expr(expr->func_call.args[0]);
+	print_right_paren();
+	print_char('[');
+	gen_expr(expr->func_call.args[1]);
+	print_char(']');
 	print_right_paren();
 }
 
