@@ -4,12 +4,13 @@
 [decl void:gets [char*:c int:sz]]
 [decl void*:malloc [int:size]]
 
-[defn int:main [void]
+[defn void:main [void]
 	[let char*:input_buffer]
 	[set input_buffer [malloc 64]]
 	[set [deref input_buffer] 'a']
 
-	[let char*:c]
+	[let char**:c]
+	[let void*:mem]
 
 	[puts "Welcome to Ether! What is your name: "]
 	[gets input_buffer 64]

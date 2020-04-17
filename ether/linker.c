@@ -179,7 +179,15 @@ static void check_struct(Stmt* stmt) {
 }
 
 static void check_func(Stmt* stmt) {
-	check_data_type(stmt->func.type);
+	if (stmt->func.type->type->type == TOKEN_KEYWORD) {
+		if (str_intern(stmt->func.type->type->lexeme) ==
+			str_intern("void") &&
+			stmt->func.type->pointer_count == 0) {
+		}
+	}
+	else {
+		check_data_type(stmt->func.type);
+	}
 	CHANGE_SCOPE(scope);
 
 	for (u64 param = 0; param < buf_len(stmt->func.params); ++param) {
@@ -195,7 +203,15 @@ static void check_func(Stmt* stmt) {
 }
 
 static void check_func_decl(Stmt* stmt) {
-	check_data_type(stmt->func.type);
+	if (stmt->func.type->type->type == TOKEN_KEYWORD) {
+		if (str_intern(stmt->func.type->type->lexeme) ==
+			str_intern("void") &&
+			stmt->func.type->pointer_count == 0) {
+		}
+	}
+	else {
+		check_data_type(stmt->func.type);
+	}
 	CHANGE_SCOPE(scope);
 
 	for (u64 param = 0; param < buf_len(stmt->func.params); ++param) {
@@ -441,6 +457,15 @@ static Stmt* check_data_type_return_struct_if_identifier(DataType* data_type) {
 			return null;
 		}
 		return struct_stmt;
+	}
+	else if (data_type->type->type == TOKEN_KEYWORD) {
+		if (str_intern(data_type->type->lexeme) ==
+			str_intern("void") &&
+			data_type->pointer_count == 0) {
+			error(data_type->type,
+				  "data type declared 'void' here: ");
+			return null;
+		}
 	}
 	return null;
 }
