@@ -46,7 +46,8 @@ static Token* make_token_from_string(const char*);
 static int data_type_match(DataType*, DataType*);
 static bool is_one_token(const char*, Token*, Token*);
 static char* data_type_to_string(DataType*);
-
+static DataType* get_smaller_type(DataType*, DataType*);
+static u64 get_data_type_size(DataType*);
 static void implicit_cast_warning(Token*, DataType*, DataType*);
 
 #define CHECK_ERROR uint current_error = error_count
@@ -131,7 +132,7 @@ static void resolve_var_decl(Stmt* stmt) {
 		}
 		else if (match == DATA_TYPE_IMPLICIT_MATCH) {
 			implicit_cast_warning(stmt->var_decl.initializer->head,
-								  defined_type, initializer_type);
+								  initializer_type, defined_type);
 		}
 	}
 }
@@ -393,9 +394,26 @@ static DataType* resolve_comparison_expr(Expr* expr) {
 		return null;
 	}
 	else if (match == DATA_TYPE_IMPLICIT_MATCH) {
-		implicit_cast_warning(expr->func_call.args[1]->head,
-							  a_expr_type,
-							  b_expr_type);		
+		DataType* smaller_type = get_smaller_type(a_expr_type, b_expr_type);
+		Token* error_token = null;
+		bool a_is_smaller = false;
+
+		if (smaller_type == a_expr_type) {
+			a_is_smaller = true;
+			error_token = expr->func_call.args[0]->head;
+		}
+		else if (smaller_type == b_expr_type) {
+			error_token = expr->func_call.args[0]->head;
+		}
+		else assert(0);
+
+		warning(error_token,
+				"implicit cast from '%s' to '%s';",
+				data_type_to_string(smaller_type),
+				data_type_to_string((a_is_smaller ?
+									 b_expr_type :
+									 a_expr_type)));
+
 	}
 	return bool_data_type;
 }
@@ -495,10 +513,44 @@ static char* data_type_to_string(DataType* type) {
 	return str;
 }
 
+static DataType* get_smaller_type(DataType* a, DataType* b) {
+	u64 a_size = get_data_type_size(a);
+	u64 b_size = get_data_type_size(b);
+
+	if (a_size <= b_size) {
+		return a;
+	}
+	return b;
+}
+
+static u64 get_data_type_size(DataType* type) {
+	if (type->pointer_count > 0) {
+		return sizeof(void*);
+	}
+	else {
+		if (str_intern(type->type->lexeme) ==
+			str_intern("int")) {
+			return sizeof(int);
+		}
+		else if (str_intern(type->type->lexeme) ==
+				 str_intern("char")) {
+			return sizeof(u8);
+		}
+		else if (str_intern(type->type->lexeme) ==
+				 str_intern("bool")) {
+			return sizeof(u8); /* bool takes a bytes in Ether */
+		}
+		else {
+			return 16; /* TODO: remove constant and compute size for custom types */
+			/* 16 here is temporary. */
+		}
+	}
+}
+
 static void implicit_cast_warning(Token* error_token,
 								  DataType* a, DataType* b) {
 	warning(error_token,
-			"implicit cast ('%s', '%s');",
+			"implicit cast from '%s' to '%s';",
 			data_type_to_string(a),
 			data_type_to_string(b));	
 }
