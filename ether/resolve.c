@@ -31,7 +31,8 @@ static DataType* make_data_type(const char*, u8);
 static DataType* resolve_expr(Expr*);
 static DataType* resolve_func_call(Expr*);
 static DataType* resolve_set_expr(Expr*);
-static DataType* resolve_deref_expr(Expr*); 
+static DataType* resolve_deref_expr(Expr*);
+static DataType* resolve_addr_expr(Expr*); 
 static DataType* resolve_arithmetic_expr(Expr*);
 static DataType* resolve_comparison_expr(Expr*);
 static DataType* resolve_variable_expr(Expr*);
@@ -231,8 +232,12 @@ static DataType* resolve_func_call(Expr* expr) {
 			return resolve_set_expr(expr);
 		}
 		else if (str_intern(expr->func_call.callee->lexeme) ==
-			str_intern("deref")) {
+				 str_intern("deref")) {
 			return resolve_deref_expr(expr);
+		}
+		else if (str_intern(expr->func_call.callee->lexeme) ==
+				 str_intern("addr")) {
+			return resolve_addr_expr(expr);
 		}
 	}
 
@@ -301,6 +306,16 @@ static DataType* resolve_deref_expr(Expr* expr) {
 	DataType* dereferenced_type = clone_data_type(type);
 	dereferenced_type->pointer_count--;
 	return dereferenced_type;
+}
+
+static DataType* resolve_addr_expr(Expr* expr) {
+	CHECK_ERROR;
+	DataType* type = resolve_expr(expr->func_call.args[0]);
+	EXIT_ERROR(null);
+
+	DataType* addressed_type = clone_data_type(type);
+	addressed_type->pointer_count++;
+	return addressed_type;
 }
 
 static DataType* resolve_arithmetic_expr(Expr* expr) {

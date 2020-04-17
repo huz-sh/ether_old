@@ -9,8 +9,8 @@
 	[set input_buffer [malloc 64]]
 	[set [deref input_buffer] 'a']
 
-	[let char**:c]
-	[let void*:mem]
+	[let char**:c [addr input_buffer]]
+	[let void*:mem [deref c]]
 
 	[puts "Welcome to Ether! What is your name: "]
 	[gets input_buffer 64]

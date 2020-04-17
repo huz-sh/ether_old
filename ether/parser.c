@@ -714,10 +714,10 @@ static void init_built_in_data_types(void) {
 	buf_push(built_in_data_types, str_intern("char"));
 	buf_push(built_in_data_types, str_intern("bool"));
 	buf_push(built_in_data_types, str_intern("void"));
-
 }
 
 static void init_operator_keywords(void) {
 	buf_push(operator_keywords, str_intern("set"));
 	buf_push(operator_keywords, str_intern("deref"));
+	buf_push(operator_keywords, str_intern("addr"));
 }

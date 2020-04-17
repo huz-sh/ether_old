@@ -36,6 +36,7 @@ static void gen_variable_expr(Expr*);
 static void gen_func_call(Expr*);
 static void gen_set_expr(Expr*);
 static void gen_deref_expr(Expr*);
+static void gen_addr_expr(Expr*);
 static void gen_arithmetic_expr(Expr*);
 static void gen_comparison_expr(Expr*);
 
@@ -368,6 +369,10 @@ static void gen_func_call(Expr* expr) {
 			str_intern("deref")) {
 			gen_deref_expr(expr);
 		}
+		else if (str_intern(expr->func_call.callee->lexeme) ==
+			str_intern("addr")) {
+			gen_addr_expr(expr);
+		}
 	}
 
 	else {
@@ -398,6 +403,13 @@ static void gen_set_expr(Expr* expr) {
 static void gen_deref_expr(Expr* expr) {
 	print_left_paren();
 	print_char('*');
+	gen_expr(expr->func_call.args[0]);
+	print_right_paren();
+}
+
+static void gen_addr_expr(Expr* expr) {
+	print_left_paren();
+	print_char('&');
 	gen_expr(expr->func_call.args[0]);
 	print_right_paren();
 }
@@ -514,7 +526,7 @@ static void print_char(char c) {
 
 static void compile_output_code(void) {
 	FILE* gcc;
-	char* command_first_part = "gcc -g -w -nostdlib -c -o ";
+	char* command_first_part = "gcc -g -w -fno-stack-protector -nostdlib -c -o ";
 	u64 command_first_part_len = strlen(command_first_part);
 	
 	char* command_last_part = " -xc -";
