@@ -7,6 +7,7 @@
 
 static Stmt** stmts;
 static char** data_type_strings;
+static DataType** cloned_data_types;
 static bool error_occured;
 static bool persistent_error_occured;
 static uint error_count;
@@ -25,10 +26,12 @@ static void resolve_var_decl(Stmt*);
 static void resolve_if_stmt(Stmt*);
 static void resolve_if_branch(IfBranch*, IfBranchType);
 static void resolve_expr_stmt(Stmt*);
+
 static DataType* make_data_type(const char*, u8);
 static DataType* resolve_expr(Expr*);
 static DataType* resolve_func_call(Expr*);
 static DataType* resolve_set_expr(Expr*);
+static DataType* resolve_deref_expr(Expr*); 
 static DataType* resolve_arithmetic_expr(Expr*);
 static DataType* resolve_comparison_expr(Expr*);
 static DataType* resolve_variable_expr(Expr*);
@@ -36,9 +39,13 @@ static DataType* resolve_number_expr(Expr*);
 
 static void init_data_types(void);
 static DataType* make_data_type(const char*, u8);
+static DataType* clone_data_type(DataType*);
 static Token* make_token_from_string(const char*);
 static int data_type_match(DataType*, DataType*);
+static bool is_one_token(const char*, Token*, Token*);
 static char* data_type_to_string(DataType*);
+
+static void implicit_cast_warning(Token*, DataType*, DataType*);
 
 #define CHECK_ERROR uint current_error = error_count
 
@@ -66,7 +73,11 @@ static void resolve_destroy(void) {
 	for (u64 i = 0; i < buf_len(data_type_strings); ++i) {
 		free(data_type_strings[i]);
 	}
+	for (u64 i = 0; i < buf_len(cloned_data_types); ++i) {
+		free(cloned_data_types[i]);
+	}
 	buf_free(data_type_strings);
+	buf_free(cloned_data_types);
 }
 
 static void resolve_file(Stmt** p_stmts) {
@@ -91,6 +102,10 @@ static void resolve_stmt(Stmt* stmt) {
 }
 
 static void resolve_func(Stmt* stmt) {
+	if (!stmt->func.is_function) {
+		return;
+	}
+	
 	for (u64 i = 0; i < buf_len(stmt->func.body); ++i) {
 		resolve_stmt(stmt->func.body[i]);
 	}
@@ -113,10 +128,8 @@ static void resolve_var_decl(Stmt* stmt) {
 			return;
 		}
 		else if (match == DATA_TYPE_IMPLICIT_MATCH) {
-			warning(stmt->var_decl.initializer->head,
-					"implicit cast from '%s' to '%s';",
-					data_type_to_string(defined_type),
-					data_type_to_string(initializer_type));
+			implicit_cast_warning(stmt->var_decl.initializer->head,
+								  defined_type, initializer_type);
 		}
 	}
 }
@@ -200,10 +213,9 @@ static DataType* resolve_func_call(Expr* expr) {
 				did_error_occur = true;
 			}
 			else if (match == DATA_TYPE_IMPLICIT_MATCH) {
-				warning(args[i]->head,
-						"implicit cast from '%s' to '%s';",
-						data_type_to_string(param_type),
-						data_type_to_string(arg_type));						
+				implicit_cast_warning(args[i]->head,
+									  param_type,
+									  arg_type);
 			}
 		}
 		if (did_error_occur) {
@@ -217,6 +229,10 @@ static DataType* resolve_func_call(Expr* expr) {
 		if (str_intern(expr->func_call.callee->lexeme) ==
 			str_intern("set")) {
 			return resolve_set_expr(expr);
+		}
+		else if (str_intern(expr->func_call.callee->lexeme) ==
+			str_intern("deref")) {
+			return resolve_deref_expr(expr);
 		}
 	}
 
@@ -237,7 +253,7 @@ static DataType* resolve_func_call(Expr* expr) {
 
 static DataType* resolve_set_expr(Expr* expr) {
 	CHECK_ERROR;
-	DataType* var_type = resolve_variable_expr(expr->func_call.args[0]);
+	DataType* var_type = resolve_expr(expr->func_call.args[0]);
 	DataType* expr_type = resolve_expr(expr->func_call.args[1]);
 	EXIT_ERROR(null);
 
@@ -258,12 +274,33 @@ static DataType* resolve_set_expr(Expr* expr) {
 		return null;
 	}
 	else if (match == DATA_TYPE_IMPLICIT_MATCH) {
-		warning(expr->func_call.args[1]->head,
-				"implicit cast from '%s' to '%s';",
-				data_type_to_string(expr_type),
-				data_type_to_string(var_type));
+		implicit_cast_warning(expr->func_call.args[1]->head,
+							  expr_type,
+							  var_type);
 	}
 	return var_type;
+}
+
+static DataType* resolve_deref_expr(Expr* expr) {
+	CHECK_ERROR;
+	DataType* type = resolve_expr(expr->func_call.args[0]);
+	EXIT_ERROR(null);
+
+	if (type->pointer_count == 0) {
+		error(expr->func_call.args[0]->head,
+			  "cannot dereference a non-pointer type;");
+		return null;
+	}
+	else if	((str_intern(type->type->lexeme) == str_intern("void") &&
+		 type->pointer_count == 1)) {
+		error(expr->func_call.args[0]->head,
+			  "cannot dereference a void-pointer; nameless type;");
+		return null;
+	}
+
+	DataType* dereferenced_type = clone_data_type(type);
+	dereferenced_type->pointer_count--;
+	return dereferenced_type;
 }
 
 static DataType* resolve_arithmetic_expr(Expr* expr) {
@@ -311,10 +348,9 @@ static DataType* resolve_comparison_expr(Expr* expr) {
 		return null;
 	}
 	else if (match == DATA_TYPE_IMPLICIT_MATCH) {
-		warning(expr->func_call.args[1]->head,
-			  "implicit cast from '%s' to '%s';",
-			  data_type_to_string(a_expr_type),
-			  data_type_to_string(b_expr_type));		
+		implicit_cast_warning(expr->func_call.args[1]->head,
+							  a_expr_type,
+							  b_expr_type);		
 	}
 	return bool_data_type;
 }
@@ -341,6 +377,14 @@ static DataType* make_data_type(const char* main_type, u8 pointer_count) {
 	type->pointer_count = pointer_count;
 	/* TODO: ??? push type into buf to free it later */
 	return type;
+}
+
+static DataType* clone_data_type(DataType* p_type) {
+	DataType* type = (DataType*)malloc(sizeof(DataType));
+	type->type = p_type->type;
+	type->pointer_count = p_type->pointer_count;
+	buf_push(cloned_data_types, type);
+	return type;	
 }
 
 static Token* make_token_from_string(const char* str) {
@@ -370,8 +414,25 @@ static int data_type_match(DataType* a, DataType* b) {
 		if (main_data_type_identical) {
 			return DATA_TYPE_MATCH;
 		}
+		else {
+			/* implicit non-pointer cast */
+			if (is_one_token("int", a->type, b->type) &&
+				is_one_token("char", a->type, b->type)) {
+				return DATA_TYPE_IMPLICIT_MATCH;
+			}
+		}
 	}
 	return DATA_TYPE_NOT_MATCH;
+}
+
+static bool is_one_token(const char* equal, Token* a, Token* b) {
+	if (str_intern(a->lexeme) == str_intern((char*)equal)) {
+		return true;
+	}
+	if (str_intern(b->lexeme) == str_intern((char*)equal)) {
+		return true;
+	}
+	return false;
 }
 
 static char* data_type_to_string(DataType* type) {
@@ -387,4 +448,12 @@ static char* data_type_to_string(DataType* type) {
 	str[len] = '\0';
 	buf_push(data_type_strings, str);
 	return str;
+}
+
+static void implicit_cast_warning(Token* error_token,
+								  DataType* a, DataType* b) {
+	warning(error_token,
+			"implicit cast ('%s', '%s');",
+			data_type_to_string(a),
+			data_type_to_string(b));	
 }

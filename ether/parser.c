@@ -3,7 +3,9 @@
 static Token** tokens;
 static u64 tokens_len;
 static Stmt** stmts;
+
 static char** built_in_data_types;
+static char** operator_keywords;
 
 static u64 idx;
 static uint error_count;
@@ -60,6 +62,9 @@ static void warning_at_previous(const char*, ...);
 static void warning(Token*, const char*, ...);
 static void sync_to_next_statement(void);
 
+static void init_built_in_data_types(void);
+static void init_operator_keywords(void);
+	
 #define CUR_ERROR uint current_error_count = error_count
 #define EXIT_ERROR if (error_count > current_error_count) return
 
@@ -85,11 +90,8 @@ void parser_init(Token** tokens_buf) {
 	error_panic = false;
 	start_stmt_bracket = false;
 
-	buf_push(built_in_data_types, str_intern("int"));
-	buf_push(built_in_data_types, str_intern("char"));
-	buf_push(built_in_data_types, str_intern("bool"));
-
-	buf_push(built_in_data_types, str_intern("void"));
+	init_built_in_data_types();
+	init_operator_keywords();
 }
 
 Stmt** parser_run(error_code* out_error_code) {
@@ -425,11 +427,16 @@ static Expr* parse_func_call_expr(void) {
 		} break;
 
 		default: {
-			/* TODO: refactor into a buf if added more function operators */
-			if (match_keyword("set")) {
-				callee = previous();
+			bool got_valid_operator_keyword = false;
+			for (u64 keyword = 0; keyword < buf_len(operator_keywords); ++keyword) {
+				if (match_keyword(operator_keywords[keyword])) {
+					callee = previous();
+					got_valid_operator_keyword = true;
+					break;
+				}
 			}
-			else {
+
+			if (!got_valid_operator_keyword) {
 				error_at_current("expected identifier or operator here:");
 				return null;
 			}
@@ -700,4 +707,17 @@ static void sync_to_next_statement(void) {
 			goto_next_token();
 		}
 	}
+}
+
+static void init_built_in_data_types(void) {
+	buf_push(built_in_data_types, str_intern("int"));
+	buf_push(built_in_data_types, str_intern("char"));
+	buf_push(built_in_data_types, str_intern("bool"));
+	buf_push(built_in_data_types, str_intern("void"));
+
+}
+
+static void init_operator_keywords(void) {
+	buf_push(operator_keywords, str_intern("set"));
+	buf_push(operator_keywords, str_intern("deref"));
 }

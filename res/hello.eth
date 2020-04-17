@@ -7,6 +7,9 @@
 [defn int:main [void]
 	[let char*:input_buffer]
 	[set input_buffer [malloc 64]]
+	[set [deref input_buffer] 'a']
+
+	[let char*:c]
 
 	[puts "Welcome to Ether! What is your name: "]
 	[gets input_buffer 64]

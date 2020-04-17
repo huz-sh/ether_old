@@ -48,6 +48,7 @@ void lexer_init(SourceFile* src) {
 	buf_push(keywords, str_intern("elif"));
 	buf_push(keywords, str_intern("else"));	
 	buf_push(keywords, str_intern("set"));
+	buf_push(keywords, str_intern("deref"));
 
 	buf_push(keywords, str_intern("int"));
 	buf_push(keywords, str_intern("char"));

@@ -29,6 +29,7 @@ static void check_expr_stmt(Stmt*);
 static void check_expr(Expr*);
 static void check_func_call(Expr*);
 static void check_set_expr(Expr*);
+static void check_deref_expr(Expr*);
 static void check_arithmetic_expr(Expr*);
 static void check_comparision_expr(Expr*);
 static void check_variable_expr(Expr*);
@@ -314,6 +315,10 @@ static void check_func_call(Expr* expr) {
 			str_intern("set")) {
 			check_set_expr(expr);
 		}
+		else if (str_intern(expr->func_call.callee->lexeme) ==
+				 str_intern("deref")) {
+			check_deref_expr(expr);
+		}
 	}
 
 	else {
@@ -343,13 +348,26 @@ static void check_set_expr(Expr* expr) {
 	if (error_token != null) {
 		/* TODO: change 'set' to a macro */
 		error(error_token,
-			  "built-in function 'set' needs 2 arguments to operate, "
+			  "built-in operator 'set' needs 2 arguments to operate, "
 			  "but got %ld argument(s);", args_len);
 		return;
 	}
 
-	check_if_variable_is_in_scope(expr->func_call.args[0]);
+	check_expr(expr->func_call.args[0]);
 	check_expr(expr->func_call.args[1]);
+}
+
+static void check_deref_expr(Expr* expr) {
+	u64 args_len = buf_len(expr->func_call.args);
+
+	if (args_len > 1) {
+		error(expr->func_call.args[1]->head,
+			  "built-in operator 'deref' needs 1 argument to operate, "
+			  "but got %ld argument(s);", args_len);
+		return;
+	}
+
+	check_expr(expr->func_call.args[0]);
 }
 
 static void check_arithmetic_expr(Expr* expr) {

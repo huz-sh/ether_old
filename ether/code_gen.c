@@ -35,6 +35,7 @@ static void gen_string_expr(Expr*);
 static void gen_variable_expr(Expr*);
 static void gen_func_call(Expr*);
 static void gen_set_expr(Expr*);
+static void gen_deref_expr(Expr*);
 static void gen_arithmetic_expr(Expr*);
 static void gen_comparison_expr(Expr*);
 
@@ -363,6 +364,10 @@ static void gen_func_call(Expr* expr) {
 			str_intern("set")) {
 			gen_set_expr(expr);
 		}
+		else if (str_intern(expr->func_call.callee->lexeme) ==
+			str_intern("deref")) {
+			gen_deref_expr(expr);
+		}
 	}
 
 	else {
@@ -382,11 +387,18 @@ static void gen_func_call(Expr* expr) {
 
 static void gen_set_expr(Expr* expr) {
 	print_left_paren();
-	gen_variable_expr(expr->func_call.args[0]);
+	gen_expr(expr->func_call.args[0]);
 	print_space();
 	print_equal();
 	print_space();
 	gen_expr(expr->func_call.args[1]);
+	print_right_paren();
+}
+
+static void gen_deref_expr(Expr* expr) {
+	print_left_paren();
+	print_char('*');
+	gen_expr(expr->func_call.args[0]);
 	print_right_paren();
 }
 
