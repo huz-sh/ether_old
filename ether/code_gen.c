@@ -29,6 +29,7 @@ static void gen_if_branch(IfBranch*, IfBranchType);
 static void gen_expr_stmt(Stmt*);
 
 static void gen_expr(Expr*);
+static void gen_dot_access_expr(Expr*);
 static void gen_number_expr(Expr*);
 static void gen_char_expr(Expr*);
 static void gen_string_expr(Expr*);
@@ -316,12 +317,23 @@ static void gen_expr_stmt(Stmt* stmt) {
 
 static void gen_expr(Expr* expr) {
 	switch (expr->type) {
+		case EXPR_DOT_ACCESS: gen_dot_access_expr(expr); break;
 		case EXPR_NUMBER: gen_number_expr(expr); break;
 		case EXPR_CHAR: gen_char_expr(expr); break;	
 		case EXPR_STRING: gen_string_expr(expr); break;
 		case EXPR_VARIABLE: gen_variable_expr(expr); break;
 		case EXPR_FUNC_CALL: gen_func_call(expr); break;	
 	}
+}
+
+static void gen_dot_access_expr(Expr* expr) {
+	print_left_paren();
+	print_left_paren();
+	gen_expr(expr->dot.left);
+	print_right_paren();
+	print_string(expr->dot.is_left_pointer ? "->" : ".");
+	print_token(expr->dot.right);
+	print_right_paren();
 }
 
 static void gen_number_expr(Expr* expr) {

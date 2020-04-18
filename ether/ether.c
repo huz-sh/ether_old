@@ -45,10 +45,10 @@ int main(int argc, char** argv) {
 #endif
 
 	linker_init(stmts);
-	err = linker_run();
+	Stmt** structs = linker_run(&err);
 	if (err == ETHER_ERROR) quit();
 
-	resolve_init(stmts);
+	resolve_init(stmts, structs);
 	err = resolve_run();
 	if (err == ETHER_ERROR) quit();
 

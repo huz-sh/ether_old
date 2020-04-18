@@ -27,6 +27,7 @@ static void check_if_stmt(Stmt*);
 static void check_if_branch(IfBranch*, IfBranchType);
 static void check_expr_stmt(Stmt*);
 static void check_expr(Expr*);
+static void check_dot_access_expr(Expr*);
 static void check_func_call(Expr*);
 static void check_set_expr(Expr*);
 static void check_deref_expr(Expr*);
@@ -59,18 +60,16 @@ void linker_init(Stmt** p_stmts) {
 	current_scope = global_scope;
 }
 
-error_code linker_run(void) {
-	/* we assume that the length of srcfiles is equal to the 
-	 * length of stmts_all */
+Stmt** linker_run(error_code* err_code) {
 	link_file(stmts);		
 	check_file(stmts);
 	
 	linker_destroy();
-	return error_occured;
+	if (err_code) *err_code = error_occured;
+	return defined_structs;
 }
 
 static void linker_destroy(void) {
-	buf_free(defined_structs);
 	buf_free(defined_functions);
 	
 	for (u64 i = 0; i < buf_len(all_scopes); ++i) {
@@ -278,12 +277,17 @@ static void check_expr_stmt(Stmt* stmt) {
 
 static void check_expr(Expr* expr) {
 	switch (expr->type) {
+		case EXPR_DOT_ACCESS: check_dot_access_expr(expr); break;
 		case EXPR_FUNC_CALL: check_func_call(expr); break;
 		case EXPR_VARIABLE: check_variable_expr(expr); break;
 		case EXPR_NUMBER:
 		case EXPR_CHAR:	
 		case EXPR_STRING: break;
 	}
+}
+
+static void check_dot_access_expr(Expr* expr) {
+	check_expr(expr->dot.left);	
 }
 
 static void check_func_call(Expr* expr) {

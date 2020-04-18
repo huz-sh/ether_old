@@ -104,6 +104,7 @@ typedef enum {
 	TOKEN_SLASH,
 	TOKEN_EQUAL,
 	TOKEN_COMMA,
+	TOKEN_DOT,
 
 	TOKEN_IDENTIFIER,
 	TOKEN_KEYWORD,
@@ -133,6 +134,7 @@ typedef enum {
 	EXPR_STRING,
 	EXPR_VARIABLE,
 	EXPR_FUNC_CALL,
+	EXPR_DOT_ACCESS,
 } ExprType;
 
 typedef struct Expr Expr;
@@ -149,12 +151,19 @@ typedef struct {
 	Stmt* variable_decl_referenced;
 } VariableRef;
 
+typedef struct {
+	Expr* left;
+	Token* right;
+	bool is_left_pointer;
+} DotAccess;
+
 struct Expr {
 	ExprType type;
 	Token* head;
 	union {
 		FuncCall func_call;
 		VariableRef variable;
+		DotAccess dot;		
 		Token* number;
 		Token* chr;
 		Token* string;
@@ -250,9 +259,9 @@ void token_warning(Token* t, const char* fmt, ...);
 void token_note(Token* token, const char* fmt, ...);
 
 void linker_init(Stmt** p_stmts);
-error_code linker_run(void);
+Stmt** linker_run(error_code* err_code);
 
-void resolve_init(Stmt** p_stmts);
+void resolve_init(Stmt** p_stmts, Stmt** p_structs);
 error_code resolve_run(void);
 
 void code_gen_init(Stmt** p_stmts, SourceFile* p_srcfile);

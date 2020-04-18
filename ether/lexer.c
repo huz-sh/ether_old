@@ -58,6 +58,7 @@ Token** lexer_run(error_code* out_error_code) {
 			case ']': add_token(TOKEN_RIGHT_BRACKET); break;
 			case '=': add_token(TOKEN_EQUAL); break;
 			case ',': add_token(TOKEN_COMMA); break;
+			case '.': add_token(TOKEN_DOT); break;
 				
 			case '"':  lex_string(); break;
 			case '\'': lex_char(); break;	

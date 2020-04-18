@@ -14,6 +14,7 @@ static void print_if_branch(IfBranch*, IfBranchType);
 static void print_expr_stmt(Stmt*);
 
 static void print_expr(Expr*);
+static void print_dot_access_expr(Expr*);
 static void print_number_expr(Expr*);
 static void print_char_expr(Expr*);
 static void print_string_expr(Expr*);
@@ -186,12 +187,19 @@ static void print_expr_stmt(Stmt* stmt) {
 
 static void print_expr(Expr* expr) {
 	switch (expr->type) {
+		case EXPR_DOT_ACCESS: print_dot_access_expr(expr); break;
 		case EXPR_NUMBER: print_number_expr(expr); break;
 		case EXPR_CHAR: print_char_expr(expr); break;	
 		case EXPR_STRING: print_string_expr(expr); break;	
 		case EXPR_VARIABLE: print_variable_expr(expr); break;
 		case EXPR_FUNC_CALL: print_func_call(expr); break;
 	}
+}
+
+static void print_dot_access_expr(Expr* expr) {
+	print_expr(expr->dot.left);
+	print_char('.');
+	print_token(expr->dot.right);
 }
 
 static void print_number_expr(Expr* expr) {

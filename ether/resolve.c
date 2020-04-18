@@ -6,6 +6,7 @@
 #define DATA_TYPE_NOT_MATCH 0
 
 static Stmt** stmts;
+static Stmt** structs;
 static char** data_type_strings;
 static DataType** cloned_data_types;
 static bool error_occured;
@@ -29,6 +30,7 @@ static void resolve_expr_stmt(Stmt*);
 
 static DataType* make_data_type(const char*, u8);
 static DataType* resolve_expr(Expr*);
+static DataType* resolve_dot_access_expr(Expr*);
 static DataType* resolve_func_call(Expr*);
 static DataType* resolve_set_expr(Expr*);
 static DataType* resolve_deref_expr(Expr*);
@@ -40,6 +42,7 @@ static DataType* resolve_variable_expr(Expr*);
 static DataType* resolve_number_expr(Expr*);
 
 static void init_data_types(void);
+static Stmt* find_struct_by_name(char*);
 static DataType* make_data_type(const char*, u8);
 static DataType* clone_data_type(DataType*);
 static Token* make_token_from_string(const char*);
@@ -55,8 +58,9 @@ static void implicit_cast_warning(Token*, DataType*, DataType*);
 #define EXIT_ERROR(x) if (error_count > current_error) return x
 #define EXIT_ERROR_VOID_RETURN if (error_count > current_error) return
 
-void resolve_init(Stmt** p_stmts) {
+void resolve_init(Stmt** p_stmts, Stmt** p_structs) {
 	stmts = p_stmts;
+	structs = p_structs;
 	data_type_strings = null;
 	error_occured = false;
 	persistent_error_occured = false;
@@ -179,13 +183,52 @@ static void resolve_expr_stmt(Stmt* stmt) {
 
 static DataType* resolve_expr(Expr* expr) {
 	switch (expr->type) {
-		case EXPR_NUMBER:	 return resolve_number_expr(expr);
-		case EXPR_STRING:	 return string_data_type;
-		case EXPR_CHAR:		 return char_data_type;	
-		case EXPR_VARIABLE:  return resolve_variable_expr(expr);
-		case EXPR_FUNC_CALL: return resolve_func_call(expr);
+		case EXPR_DOT_ACCESS:	return resolve_dot_access_expr(expr);
+		case EXPR_NUMBER:	 	return resolve_number_expr(expr);
+		case EXPR_STRING:	 	return string_data_type;
+		case EXPR_CHAR:		 	return char_data_type;	
+		case EXPR_VARIABLE:  	return resolve_variable_expr(expr);
+		case EXPR_FUNC_CALL: 	return resolve_func_call(expr);
 	}
 	assert(0);
+	return null;
+}
+
+static DataType* resolve_dot_access_expr(Expr* expr) {
+	CHECK_ERROR;
+	DataType* left_type = resolve_expr(expr->dot.left);
+	EXIT_ERROR(null);
+
+	if (!left_type) return null;
+
+	if (left_type->type->type != TOKEN_KEYWORD) {
+		if (left_type->pointer_count == 0 ||
+			left_type->pointer_count == 1) {
+			expr->dot.is_left_pointer = (left_type->pointer_count == 0 ?
+										 false : true);
+			Stmt* struct_ref = find_struct_by_name(left_type->type->lexeme);
+			if (struct_ref) {
+				for (u64 f = 0; f < buf_len(struct_ref->struct_stmt.fields); ++f) {
+					if (is_token_identical(struct_ref->struct_stmt.fields[f]->identifier,
+										   expr->dot.right)) {
+						return struct_ref->struct_stmt.fields[f]->type;
+					}
+				}
+
+				error(expr->dot.right,
+					  "cannot find field '%s' in struct '%s';",
+					  expr->dot.right->lexeme,
+					  left_type->type->lexeme);
+				note(struct_ref->struct_stmt.identifier,
+					 "struct '%s' defined here: ",
+					 left_type->type->lexeme);
+				return null;
+			}
+		}
+	}
+	error(expr->dot.left->head,
+		  "invalid operand to '.' operator: '%s'; use 'deref' operator instead;",
+		  data_type_to_string(left_type));
 	return null;
 }
 
@@ -270,19 +313,10 @@ static DataType* resolve_set_expr(Expr* expr) {
 
 	int match = data_type_match(var_type, expr_type);
 	if (match == DATA_TYPE_NOT_MATCH) {
-		/* TODO: change to a dot reference OR a variable when adding dot operator */
-		Stmt* var_decl = expr->func_call.args[0]->variable.variable_decl_referenced;
 		error(expr->func_call.args[1]->head,
 			  "cannot set variable type '%s' to expression type '%s'",
 			  data_type_to_string(var_type),
 			  data_type_to_string(expr_type));
-		note(var_decl->var_decl.identifier,
-			 "variable '%s' declared here: ",
-			 var_decl->var_decl.identifier->lexeme);
-		/* TODO: we can also give a note if the expr is of type 
-		 * EXPR_FUNC_CALL, and have it reference the line where the function
-		 * was declared */
-		/* TODO: check what to return here */
 		return null;
 	}
 	else if (match == DATA_TYPE_IMPLICIT_MATCH) {
@@ -432,6 +466,17 @@ static void init_data_types(void) {
 	char_data_type = make_data_type("char", 0);
 	string_data_type = make_data_type("char", 1);
 	bool_data_type = make_data_type("bool", 0);
+}
+
+static Stmt* find_struct_by_name(char* name) {
+	for (u64 i = 0; i < buf_len(structs); ++i) {
+		if (str_intern(structs[i]->struct_stmt.identifier->lexeme) ==
+			str_intern(name)) {
+			return structs[i];
+		}
+	}
+	assert(0);
+	return null;
 }
 
 static DataType* make_data_type(const char* main_type, u8 pointer_count) {

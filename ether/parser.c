@@ -28,9 +28,11 @@ static void parse_if_branch(Stmt*, IfBranchType);
 static Stmt* parse_expr_stmt(void);
 
 static Expr* parse_expr(void);
+static Expr* parse_dot_access_expr(void);
 static Expr* parse_primary_expr(void);
 static Expr* parse_func_call_expr(void);
 
+static Expr* make_dot_access_expr(Expr*, Token*);
 static Expr* make_number_expr(Token*);
 static Expr* make_char_expr(Token*);
 static Expr* make_string_expr(Token*);
@@ -386,7 +388,16 @@ static Stmt* parse_expr_stmt(void) {
 }
 
 static Expr* parse_expr(void) {
-	return parse_primary_expr();
+	return parse_dot_access_expr();
+}
+
+static Expr* parse_dot_access_expr(void) {
+	Expr* left = parse_primary_expr();
+	while (match_token_type(TOKEN_DOT)) {
+		Token* right = consume_identifier();
+		left = make_dot_access_expr(left, right);
+	}
+	return left;
 }
 
 static Expr* parse_primary_expr(void) {
@@ -459,6 +470,15 @@ static Expr* parse_func_call_expr(void) {
 
 #define MAKE_EXPR(x) Expr* x = (Expr*)malloc(sizeof(Expr));
 
+static Expr* make_dot_access_expr(Expr* left, Token* right) {
+	MAKE_EXPR(new);
+	new->type = EXPR_DOT_ACCESS;
+	new->head = left->head;
+	new->dot.left = left;
+	new->dot.right = right;
+	return new;
+}
+
 static Expr* make_number_expr(Token* t) {
 	MAKE_EXPR(new);
 	new->type = EXPR_NUMBER;
@@ -490,7 +510,6 @@ static Expr* make_variable_expr(Token* t) {
 	new->number = t;
 	return new;
 }
-
 
 static Expr* make_func_call_expr(Token* callee, Expr** args) {
 	MAKE_EXPR(new);
