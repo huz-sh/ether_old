@@ -1,6 +1,6 @@
-PROJECT := ether_stdlib
+PROJECT := libether
 
-SRC_DIR := ether_stdlib
+SRC_DIR := libether
 INC_DIR := 
 
 BIN_DIR := bin
@@ -11,13 +11,13 @@ ASM_FILES := $(shell find $(SRC_DIR) -name "*.asm")
 
 OBJ_FILES := $(addprefix $(OBJ_DIR)/, $(addsuffix .o, $(C_FILES)))
 OBJ_FILES += $(addprefix $(OBJ_DIR)/, $(addsuffix .o, $(ASM_FILES)))
-BIN_FILE := $(BIN_DIR)/lib$(PROJECT).a
+BIN_FILE := $(BIN_DIR)/$(PROJECT).a
 
 CC := gcc
 ASM := nasm
 AR := ar
 
-CFLAGS := -w -nostdlib
+CFLAGS := -w -g -nostdlib
 ASMFLAGS := -felf64
 ARFLAGS := rcs
 

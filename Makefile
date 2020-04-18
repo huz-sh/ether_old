@@ -6,8 +6,8 @@ INC_DIR := ether/include
 BIN_DIR := bin
 OBJ_DIR := obj
 
-ETHER_STDLIB_DIR := ether_stdlib
-ETHER_STDLIB := $(ETHER_STDLIB_DIR)/bin/libether_stdlib.a
+ETHER_STDLIB_DIR := libether
+ETHER_STDLIB := $(ETHER_STDLIB_DIR)/bin/libether.a
 
 C_FILES := $(shell find $(SRC_DIR) -name "*.c")
 ASM_FILES := $(shell find $(SRC_DIR) -name "*.asm")
@@ -22,9 +22,9 @@ LD := gcc
 CFLAGS := -I$(INC_DIR) -D_DEBUG -Wall -Wextra -Wshadow -std=c99 -m64 -g -O0
 LDFLAGS :=
 
-run: ether_stdlib $(BIN_FILE)
+run: libether $(BIN_FILE)
 	$(BIN_FILE) res/hello.eth
-	ld -o $(BIN_DIR)/a.out res/hello.o -L $(dir $(ETHER_STDLIB)) -lether_stdlib -lc -lm --dynamic-linker=/usr/lib64/ld-linux-x86-64.so.2 # TODO: remove C math library and provide our own
+	gcc -o $(BIN_DIR)/a.out res/hello.o -L $(dir $(ETHER_STDLIB)) -lc -lm -Wl,--dynamic-linker=/usr/lib64/ld-linux-x86-64.so.2 # TODO: remove C math library and provide our own
 
 debug: $(ETHER_STDLIB) $(BIN_FILE)
 	@gdb --args $(BIN_FILE) res/hello.eth
@@ -42,7 +42,7 @@ $(OBJ_DIR)/%.asm.o: %.asm
 	mkdir -p $(OBJ_DIR)/$(dir $^)
 	nasm -felf64 -o $@ $^
 
-ether_stdlib:
+libether:
 	@echo "Making stdlib..."
 	+$(MAKE) -C $(ETHER_STDLIB_DIR)
 
@@ -51,4 +51,4 @@ clean:
 	rm -rf $(OBJ_FILES)
 	rm -rf $(BIN_FILE)
 
-.PHONY: run clean ether_stdlib
+.PHONY: run clean libether

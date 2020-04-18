@@ -6,9 +6,8 @@ void free(void*);
 
 void putd(int d) {
 	int len = num_len(d);
-	char* buf = malloc(len + 1);
+	const char* buf = malloc(len + 1);
 
 	sputd(buf, d);
-	puts(buf);
 	free(buf);
 }
