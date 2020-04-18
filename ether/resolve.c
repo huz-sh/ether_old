@@ -314,7 +314,7 @@ static DataType* resolve_set_expr(Expr* expr) {
 	int match = data_type_match(var_type, expr_type);
 	if (match == DATA_TYPE_NOT_MATCH) {
 		error(expr->func_call.args[1]->head,
-			  "cannot set variable type '%s' to expression type '%s'",
+			  "cannot set variable type '%s' to expression type '%s';",
 			  data_type_to_string(var_type),
 			  data_type_to_string(expr_type));
 		return null;

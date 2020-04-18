@@ -51,4 +51,9 @@ clean:
 	rm -rf $(OBJ_FILES)
 	rm -rf $(BIN_FILE)
 
-.PHONY: run clean libether
+loc:
+	find ether libether -name "*.c" -or \
+						-name "*.h" -or \
+						-name "*.asm" | xargs cat | wc -l
+
+.PHONY: run clean libether loc

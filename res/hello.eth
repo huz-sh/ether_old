@@ -14,7 +14,7 @@
 	[free input_buffer]
 
     [let vec2*:v]
-	[set v.y 2]]
+	[set v.y "int"]]
 
 [struct vec2
     [int:x]
