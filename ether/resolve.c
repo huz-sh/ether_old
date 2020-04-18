@@ -586,8 +586,17 @@ static u64 get_data_type_size(DataType* type) {
 			return sizeof(u8); /* bool takes a bytes in Ether */
 		}
 		else {
-			return 16; /* TODO: remove constant and compute size for custom types */
-			/* 16 here is temporary. */
+			if (type->type->type == TOKEN_IDENTIFIER) {
+				u64 total_count = 0;
+				Stmt* struct_ref = find_struct_by_name(type->type->lexeme);
+				assert(struct_ref);
+				for (u64 i = 0; i < buf_len(struct_ref->struct_stmt.fields); ++i) {
+					total_count +=
+						get_data_type_size(struct_ref->struct_stmt.fields[i]->type);
+				}
+				return total_count;
+			}
+			assert(0);
 		}
 	}
 }
