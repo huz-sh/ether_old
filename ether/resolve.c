@@ -534,7 +534,7 @@ static u64 get_data_type_size(DataType* type) {
 		}
 		else if (str_intern(type->type->lexeme) ==
 				 str_intern("char")) {
-			return sizeof(u8);
+			return sizeof(char);
 		}
 		else if (str_intern(type->type->lexeme) ==
 				 str_intern("bool")) {

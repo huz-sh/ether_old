@@ -10,4 +10,5 @@ gets:
 
 	pop rdi
 	mov byte [rdi+rax-1], 0
+	dec rax
 	ret

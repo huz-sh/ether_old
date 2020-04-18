@@ -1,23 +1,26 @@
 [decl int:getc [void]]
 [decl void:putsln [char*:str]]
 [decl void:puts [char*:str]]
-[decl void:gets [char*:c int:sz]]
+[decl int:gets [char*:c int:sz]]
 [decl void*:malloc [int:size]]
+[decl int:num_len [int:n]]
+[decl void:sputd [char*:s int:d]]
+[decl void:putd [int:d]]
 
 [defn void:main [void]
 	[let char*:input_buffer]
 	[set input_buffer [malloc 64]]
-	[set [deref input_buffer] 'a']
-	[set [at input_buffer 'a'] 'a']
-
-	[let char**:c [addr input_buffer]]
-	[let void*:mem [deref c]]
 
 	[puts "Welcome to Ether! What is your name: "]
-	[gets input_buffer 64]
+	[let int:bytes_read [gets input_buffer 64]]
+
+    [let int:bytes_read_len [num_len bytes_read]]
+	[let char*:to_store [malloc [+ bytes_read_len 1]]]
+	[sputd to_store bytes_read]
+	[puts to_store]
 
 	[if [= 1 '4']]
-
 	[puts "Hello, "]
 	[puts input_buffer]
 	[putsln "!"]]
+

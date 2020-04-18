@@ -7,7 +7,7 @@ inline static void quit(void);
 
 int main(int argc, char** argv) {
 	if (argc != 2) {
-		ether_error("requires one ether source file to operate; exiting...");
+		ether_error("requires one source file to operate;");
 	}
 	/* TODO: check file extension */
 

@@ -17,7 +17,7 @@ CC := gcc
 ASM := nasm
 AR := ar
 
-CFLAGS :=
+CFLAGS := -w -nostdlib
 ASMFLAGS := -felf64
 ARFLAGS := rcs
 
@@ -34,7 +34,7 @@ $(OBJ_DIR)/%.asm.o: %.asm
 	$(ASM) $(ASMFLAGS) -o $@ $^
 
 clean:
-	@rm -rf $(OBJ_FILES)
-	@rm -rf $(BIN_FILE)
+	rm -rf $(OBJ_FILES)
+	rm -rf $(BIN_FILE)
 
 .PHONY: run clean

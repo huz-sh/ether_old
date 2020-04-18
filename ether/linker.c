@@ -321,8 +321,9 @@ static void check_func_call(Expr* expr) {
 			}
 		}
 
-		warning(expr->func_call.callee,
-			  "implicit declaration of function '%s'; did you forget to define '%s'?",
+		error(expr->func_call.callee,
+			  "implicit declaration of function '%s'; did you forget to define '%s'?"
+			  " (use a 'decl' statement to suppress this error);",
 			  expr->func_call.callee->lexeme,
 			  expr->func_call.callee->lexeme);
 		return;
