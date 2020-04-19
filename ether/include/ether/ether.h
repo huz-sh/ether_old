@@ -69,6 +69,7 @@ echar* estr_create(char* str);
 u64 estr_len(echar* estr);
 void estr_append(echar* dest, char* src);
 u64 estr_find_last_of(echar* estr, char c);
+echar* estr_sub(echar* estr, u64 start, u64 end);
 
 typedef struct {
 	char* fpath;

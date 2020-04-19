@@ -32,3 +32,17 @@ u64 estr_find_last_of(echar* estr, char c) {
 	}
 	return idx;
 }
+
+echar* estr_sub(echar* estr, u64 start, u64 end) {
+	if (end <= start) {
+		assert(0);
+		return null;
+	}
+
+	echar* buf = null;
+	for (u64 i = start; i < end; ++i) {
+		buf_push(buf, estr[i]);
+	}
+	buf_push(buf, '\0');
+	return buf;
+}
