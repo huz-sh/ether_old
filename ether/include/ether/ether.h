@@ -275,4 +275,6 @@ error_code resolve_run(void);
 void code_gen_init(Stmt** p_stmts, SourceFile* p_srcfile);
 void code_gen_run(void);
 
+error_code loader_load(SourceFile* file, Stmt*** existing_stmts);
+
 #endif
