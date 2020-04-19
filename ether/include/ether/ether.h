@@ -180,6 +180,7 @@ typedef enum {
 	STMT_FUNC,
 	STMT_VAR_DECL,
 	STMT_IF,
+	STMT_RETURN,
 	STMT_EXPR,
 } StmtType;
 
@@ -226,6 +227,12 @@ typedef struct {
 	IfBranch* else_branch;
 } If;
 
+typedef struct {
+	Expr* expr;
+	Stmt* function_referernced;
+	Token* keyword;
+} Return;
+
 struct Stmt {
 	StmtType type;
 	union {
@@ -233,6 +240,7 @@ struct Stmt {
 		Func func;
 		VarDecl var_decl;
 		If if_stmt;
+		Return return_stmt;
 		Expr* expr;
 	};
 };

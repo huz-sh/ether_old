@@ -14,8 +14,12 @@
 	[free input_buffer]
 
     [let vec2*:v]
-	[set v.y "int"]]
+	[set v.y 2]
+	[putd [add 2 3]]]
 
 [struct vec2
     [int:x]
 	[int:y]]
+
+[defn int:add [int:a int:b]
+    [return [+ a b]]]

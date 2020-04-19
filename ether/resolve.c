@@ -26,6 +26,7 @@ static void resolve_func(Stmt*);
 static void resolve_var_decl(Stmt*);
 static void resolve_if_stmt(Stmt*);
 static void resolve_if_branch(IfBranch*, IfBranchType);
+static void resolve_return_stmt(Stmt*);
 static void resolve_expr_stmt(Stmt*);
 
 static DataType* make_data_type(const char*, u8);
@@ -102,9 +103,10 @@ static void resolve_stmt(Stmt* stmt) {
 	switch (stmt->type) {
 		case STMT_FUNC: resolve_func(stmt); break;
 		case STMT_VAR_DECL: resolve_var_decl(stmt); break;
-		case STMT_IF: resolve_if_stmt(stmt); break;	
+		case STMT_IF: resolve_if_stmt(stmt); break;
+		case STMT_RETURN: resolve_return_stmt(stmt); break;
 		case STMT_EXPR: resolve_expr_stmt(stmt); break;
-		case STMT_STRUCT: break;	
+		case STMT_STRUCT: break;	/* TODO: check */
 	}
 }
 
@@ -174,6 +176,52 @@ static void resolve_if_branch(IfBranch* branch, IfBranchType type) {
 
 	for (u64 i = 0; i < buf_len(branch->body); ++i) {
 		resolve_stmt(branch->body[i]);
+	}
+}
+
+static void resolve_return_stmt(Stmt* stmt) {
+	int match = DATA_TYPE_NOT_MATCH;
+	DataType* function_type =
+		stmt->return_stmt.function_referernced->func.type;
+	DataType* return_type = null;
+
+	if (!stmt->return_stmt.expr) {
+		if (str_intern(function_type->type->lexeme) ==
+			str_intern("void") &&
+			function_type->pointer_count == 0) {
+			match = DATA_TYPE_MATCH;
+		}
+	}
+	else {
+		CHECK_ERROR;
+		return_type = resolve_expr(stmt->return_stmt.expr);
+		EXIT_ERROR_VOID_RETURN;
+
+		match = data_type_match(return_type, function_type);
+	}
+	
+	if (match == DATA_TYPE_NOT_MATCH) {
+		char* return_type_lexeme = null;
+		Token* error_token = null;
+		if (!stmt->return_stmt.expr) {
+			return_type_lexeme = str_intern("void");
+			error_token = stmt->return_stmt.keyword;
+		}
+		else {
+			return_type_lexeme = data_type_to_string(return_type);
+			error_token = stmt->return_stmt.expr->head;
+		}
+		
+		error(error_token,
+			  "return statement type conflicts with function return "
+			  "type: returning '%s' from a '%s' function;",
+			  return_type_lexeme,
+			  data_type_to_string(function_type));
+	}
+	else if (match == DATA_TYPE_IMPLICIT_MATCH) {
+		implicit_cast_warning(stmt->return_stmt.expr->head,
+							  return_type,
+							  function_type);
 	}
 }
 

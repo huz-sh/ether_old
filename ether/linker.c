@@ -25,7 +25,9 @@ static void check_global_var_decl(Stmt*);
 static void check_var_decl(Stmt*);
 static void check_if_stmt(Stmt*);
 static void check_if_branch(IfBranch*, IfBranchType);
+static void check_return_stmt(Stmt*);
 static void check_expr_stmt(Stmt*);
+
 static void check_expr(Expr*);
 static void check_dot_access_expr(Expr*);
 static void check_func_call(Expr*);
@@ -162,6 +164,7 @@ static void check_stmt(Stmt* stmt) {
 			}
 		} break;
 		case STMT_IF: check_if_stmt(stmt); break;
+		case STMT_RETURN: check_return_stmt(stmt); break;	
 		case STMT_EXPR: check_expr_stmt(stmt); break;
 	}
 }
@@ -269,6 +272,12 @@ static void check_if_branch(IfBranch* branch, IfBranchType type) {
 		check_stmt(branch->body[i]);
 	}
 	REVERT_SCOPE(scope);		
+}
+
+static void check_return_stmt(Stmt* stmt) {
+	if (stmt->return_stmt.expr) {
+		check_expr(stmt->return_stmt.expr);
+	}
 }
 
 static void check_expr_stmt(Stmt* stmt) {

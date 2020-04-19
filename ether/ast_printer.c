@@ -11,6 +11,7 @@ static void print_func_decl(Stmt*);
 static void print_var_decl(Stmt*);
 static void print_if_stmt(Stmt*);
 static void print_if_branch(IfBranch*, IfBranchType);
+static void print_return_stmt(Stmt*);
 static void print_expr_stmt(Stmt*);
 
 static void print_expr(Expr*);
@@ -47,6 +48,7 @@ static void print_stmt(Stmt* stmt) {
 	if (stmt->type != STMT_IF) print_tabs_by_indentation();
 	if (stmt->type != STMT_EXPR &&
 		stmt->type != STMT_IF)		print_left_bracket();
+	
 	switch (stmt->type) {
 		case STMT_STRUCT:		print_struct(stmt); break;
 		case STMT_FUNC: {
@@ -59,8 +61,10 @@ static void print_stmt(Stmt* stmt) {
 		} break;
 		case STMT_VAR_DECL: 	print_var_decl(stmt); break;
 		case STMT_IF:			print_if_stmt(stmt); break;
+		case STMT_RETURN:		print_return_stmt(stmt); break;	
 		case STMT_EXPR:			print_expr_stmt(stmt); break;
 	}
+	
 	if (stmt->type != STMT_EXPR &&
 		stmt->type != STMT_IF)		print_right_bracket();
 }
@@ -179,6 +183,13 @@ static void print_if_branch(IfBranch* branch, IfBranchType type) {
 	tab_count--;
 	print_right_bracket();
 	print_newline();
+}
+
+static void print_return_stmt(Stmt* stmt) {
+	print_string("return ");
+	if (stmt->return_stmt.expr) {
+		print_expr(stmt->return_stmt.expr);
+	}
 }
 
 static void print_expr_stmt(Stmt* stmt) {

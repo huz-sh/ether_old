@@ -24,7 +24,7 @@ LDFLAGS :=
 
 run: libether $(BIN_FILE)
 	$(BIN_FILE) res/hello.eth
-	gcc -o $(BIN_DIR)/a.out res/hello.o -L $(dir $(ETHER_STDLIB)) -lc -lm -Wl,--dynamic-linker=/usr/lib64/ld-linux-x86-64.so.2 # TODO: remove C math library and provide our own
+	gcc -o $(BIN_DIR)/a.out res/hello.o -L $(dir $(ETHER_STDLIB)) -lether -lc -lm -Wl,--dynamic-linker=/usr/lib64/ld-linux-x86-64.so.2 # TODO: remove C math library and provide our own
 
 debug: $(ETHER_STDLIB) $(BIN_FILE)
 	@gdb --args $(BIN_FILE) res/hello.eth

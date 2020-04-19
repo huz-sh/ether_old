@@ -13,6 +13,7 @@ static bool error_occured;
 static uint error_bracket_counter;
 static bool error_panic;
 static bool start_stmt_bracket;
+static Stmt* current_function;
 
 static void parser_destroy(void);
 
@@ -25,6 +26,7 @@ static Stmt* parse_func_decl(void);
 static Stmt* parse_var_decl(DataType*, Token*, bool);
 static Stmt* parse_if_stmt(void);
 static void parse_if_branch(Stmt*, IfBranchType);
+static Stmt* parse_return_stmt(Token*);
 static Stmt* parse_expr_stmt(void);
 
 static Expr* parse_expr(void);
@@ -91,6 +93,7 @@ void parser_init(Token** tokens_buf) {
 	error_bracket_counter = 0;
 	error_panic = false;
 	start_stmt_bracket = false;
+	current_function = null;
 
 	init_built_in_data_types();
 	init_operator_keywords();
@@ -155,6 +158,9 @@ static Stmt* parse_stmt(void) {
 		Token* identifier = consume_identifier();
 		stmt = parse_var_decl(dt, identifier, false);
 	}
+	else if (match_keyword("return")) {
+		stmt = parse_return_stmt(previous());
+	}
 	else if (match_keyword("if")) {
 		stmt = parse_if_stmt();
 	}
@@ -170,6 +176,11 @@ static Stmt* parse_stmt(void) {
 	}
 	else if (match_keyword("defn")) {
 		error(previous(), "cannot define a function inside a function-scope; "
+						  "did you miss a ']'?");
+		return null;
+	}
+	else if (match_keyword("decl")) {
+		error(previous(), "cannot declare a function inside a function-scope; "
 						  "did you miss a ']'?");
 		return null;
 	}
@@ -213,6 +224,7 @@ static Stmt* parse_func(void) {
 	MAKE_STMT(new);
 	error_code header_parsing_error = parse_func_header(new, true);
 	if (header_parsing_error != ETHER_SUCCESS) return null;
+	current_function = new;
 
 	Stmt** body = null;
 	while (!match_right_bracket()) {
@@ -377,6 +389,21 @@ static void parse_if_branch(Stmt* if_stmt, IfBranchType type) {
 			if_stmt->if_stmt.else_branch = branch;
 		} break;
 	}
+}
+
+static Stmt* parse_return_stmt(Token* keyword) {
+	MAKE_STMT(new);
+	Expr* expr = null;
+	if (!match_right_bracket()) {
+		expr = parse_expr();
+		consume_right_bracket();
+	}
+	new->type = STMT_RETURN;
+	new->return_stmt.expr = expr;
+	new->return_stmt.keyword = keyword;
+	assert(current_function);
+	new->return_stmt.function_referernced = current_function;
+	return new;	
 }
 
 static Stmt* parse_expr_stmt(void) {

@@ -26,6 +26,7 @@ static void gen_stmt(Stmt*);
 static void gen_var_decl(Stmt*);
 static void gen_if_stmt(Stmt*);
 static void gen_if_branch(IfBranch*, IfBranchType);
+static void gen_return_stmt(Stmt*);
 static void gen_expr_stmt(Stmt*);
 
 static void gen_expr(Expr*);
@@ -244,7 +245,8 @@ static void gen_stmt(Stmt* stmt) {
 	print_tabs_by_indentation();
 	switch (stmt->type) {
 		case STMT_VAR_DECL: gen_var_decl(stmt); break;
-		case STMT_IF: gen_if_stmt(stmt); break;	
+		case STMT_IF: gen_if_stmt(stmt); break;
+		case STMT_RETURN: gen_return_stmt(stmt); break;	
 		case STMT_EXPR: gen_expr_stmt(stmt); break;
 		case STMT_STRUCT:
 		case STMT_FUNC: break;	
@@ -306,6 +308,17 @@ static void gen_if_branch(IfBranch* branch, IfBranchType type) {
 	
 	print_tabs_by_indentation();
 	print_right_brace();
+	print_newline();
+}
+
+static void gen_return_stmt(Stmt* stmt) {
+	print_string("return ");
+	if (stmt->return_stmt.expr) {
+		print_left_paren();
+		gen_expr(stmt->return_stmt.expr);
+		print_right_paren();
+	}
+	print_semicolon();
 	print_newline();
 }
 

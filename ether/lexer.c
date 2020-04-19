@@ -293,7 +293,8 @@ static void init_keywords(void) {
 	buf_push(keywords, str_intern("let"));
 	buf_push(keywords, str_intern("if"));
 	buf_push(keywords, str_intern("elif"));
-	buf_push(keywords, str_intern("else"));	
+	buf_push(keywords, str_intern("else"));
+	buf_push(keywords, str_intern("return"));	
 	buf_push(keywords, str_intern("set"));
 	buf_push(keywords, str_intern("deref"));
 	buf_push(keywords, str_intern("addr"));
