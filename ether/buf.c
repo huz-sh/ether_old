@@ -19,3 +19,11 @@ void* buf__grow(const void* buf, u64 new_len, u64 elem_size) {
 	new_hdr->cap = new_cap;
 	return new_hdr->buf;
 }
+
+void buf__shrink(const void* buf, u64 size) {
+	if (size > buf_len(buf)) {
+		size = buf_len(buf);
+	}
+
+	buf__hdr(buf)->len -= size;
+}

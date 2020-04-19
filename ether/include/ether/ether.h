@@ -52,14 +52,23 @@ typedef struct {
 #define buf_sizeof(b) ((b) ? buf_len(b) * sizeof(*b) : 0)
 
 #define buf_free(b)		   ((b) ? (free(buf__hdr(b)), (b) = null) : 0)
-#define buf_fit(b, n)	   ((n) <= buf_cap(b) ? 0 :							\
+#define buf_fit(b, n)	   ((n) <= buf_cap(b) ? 0 :	\
 							((b) = buf__grow((b), (n), sizeof(*(b)))))
-#define buf_push(b, ...)   (buf_fit((b), 1 + buf_len(b)),				\
+#define buf_push(b, ...)   (buf_fit((b), 1 + buf_len(b)), \
 							(b)[buf__hdr(b)->len++] = (__VA_ARGS__))
+#define buf_pop(b)		   ((b) ? buf__shrink((b), 1) : 0)
 #define buf_printf(b, ...) ((b) = buf__printf((b), __VA_ARGS__))
 #define buf_clear(b)	   ((b) ? buf__hdr(b)->len = 0 : 0)
 
 void* buf__grow(const void* buf, u64 new_len, u64 elem_size);
+void buf__shrink(const void* buf, u64 size);
+
+typedef char echar;
+
+echar* estr_create(char* str);
+u64 estr_len(echar* estr);
+void estr_append(echar* dest, char* src);
+u64 estr_find_last_of(echar* estr, char c);
 
 typedef struct {
 	char* fpath;
