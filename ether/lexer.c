@@ -289,7 +289,8 @@ static void error_at_current(const char* msg, ...) {
 static void init_keywords(void) {
 	buf_push(keywords, str_intern("struct"));
 	buf_push(keywords, str_intern("defn"));
-	buf_push(keywords, str_intern("decl"));	
+	buf_push(keywords, str_intern("decl"));
+	buf_push(keywords, str_intern("load"));
 	buf_push(keywords, str_intern("let"));
 	buf_push(keywords, str_intern("if"));
 	buf_push(keywords, str_intern("elif"));

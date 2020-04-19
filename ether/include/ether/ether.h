@@ -255,7 +255,7 @@ struct Stmt {
 	};
 };
 
-void parser_init(Token** tokens_buf);
+void parser_init(Token** tokens_buf, SourceFile* file);
 Stmt** parser_run(error_code* out_error_code);
 
 #ifdef _DEBUG
@@ -285,6 +285,6 @@ error_code resolve_run(void);
 void code_gen_init(Stmt** p_stmts, SourceFile* p_srcfile);
 void code_gen_run(void);
 
-error_code loader_load(SourceFile* file, Stmt*** existing_stmts);
+error_code loader_load(SourceFile* file, Stmt** existing_stmts);
 
 #endif

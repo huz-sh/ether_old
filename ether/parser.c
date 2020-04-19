@@ -3,6 +3,7 @@
 static Token** tokens;
 static u64 tokens_len;
 static Stmt** stmts;
+static SourceFile* srcfile;
 
 static char** built_in_data_types;
 static char** operator_keywords;
@@ -23,6 +24,7 @@ static Stmt* parse_struct(Token*);
 static Stmt* parse_func(void);
 static error_code parse_func_header(Stmt*, bool);
 static Stmt* parse_func_decl(void);
+static void parse_load_stmt(void);
 static Stmt* parse_var_decl(DataType*, Token*, bool);
 static Stmt* parse_if_stmt(void);
 static void parse_if_branch(Stmt*, IfBranchType);
@@ -84,9 +86,10 @@ if (current()->type == TOKEN_EOF) { \
 	return; \
 }
 
-void parser_init(Token** tokens_buf) {
+void parser_init(Token** tokens_buf, SourceFile* file) {
 	tokens = tokens_buf;
 	tokens_len = buf_len(tokens_buf);
+	srcfile = file;
 	idx = 0;
 	error_count = 0;
 	error_occured = false;
@@ -136,8 +139,12 @@ static Stmt* parse_decl(void) {
 	else if (match_keyword("decl")) {
 		stmt = parse_func_decl();
 	}
+	else if (match_keyword("load")) {
+		parse_load_stmt();
+		return null;
+	}
 	else {
-		error_at_current("expected keyword 'struct', 'defn', 'decl' or 'let' "
+		error_at_current("expected keyword 'load', 'struct', 'defn', 'decl' or 'let' "
 						 "in global scope; did you miss a ']'?");
 		return null;
 	}
@@ -304,6 +311,32 @@ static Stmt* parse_func_decl(void) {
 
 	new->type = STMT_FUNC;
 	return new;
+}
+
+static void parse_load_stmt(void) {
+	Token* fpath = null;
+	expect_token_type(TOKEN_STRING, "expected string here: ");
+	fpath = previous();
+	consume_right_bracket();
+
+	echar* cur_fpath = estr_create(srcfile->fpath);
+	u64 last_forward_slash = estr_find_last_of(cur_fpath, '/'); /* TODO: change to '\' in windows */
+	echar* target_fpath = null;
+	target_fpath = estr_sub(cur_fpath, 0, last_forward_slash + 1);
+	estr_append(target_fpath, fpath->lexeme);
+
+	SourceFile* file = ether_read_file(target_fpath);
+	if (!file) {
+		error(fpath,
+			  "cannot find \"%s\" (relative_to_working_dir: \"%s\");",
+			  fpath->lexeme, target_fpath);
+		return;
+	}
+
+	error_code err = loader_load(file, stmts);
+	if (err) {
+		/* TODO: what to do here */
+	}
 }
 
 static Stmt* parse_var_decl(DataType* d, Token* t, bool is_global_var) {
