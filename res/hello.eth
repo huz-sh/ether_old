@@ -23,5 +23,5 @@
     [int:x]
 	[int:y]]
 
-[defn int:add [int:a int:b]
+[defn pub int:add [int:a int:b]
     [return [+ a b]]]

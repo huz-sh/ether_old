@@ -6,9 +6,6 @@
 inline static void quit(void);
 
 int main(int argc, char** argv) {
-	if (argc != 2) {
-		ether_error("requires one source file to operate;");
-	}
 	/* TODO: check file extension */
 
 	/* TODO: check if we have to free this pointer.
@@ -18,9 +15,9 @@ int main(int argc, char** argv) {
 		ether_error("%s: no such file or directory", argv[1]);
 	}
 
-	lexer_init(srcfile);
 	error_code err = false;
-	Token** tokens = lexer_run(&err);
+	Lexer lexer;
+	Token** tokens = lexer_run(&lexer, srcfile, &err);
 	if (err == ETHER_ERROR) quit();
 
 #if PRINT_TOKENS

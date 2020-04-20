@@ -133,10 +133,23 @@ typedef struct {
 	u32 column;
 } Token;
 
+typedef struct {
+	SourceFile* srcfile;
+	Token** tokens;
+	char** keywords;
+
+	char* start, *cur;
+	u64 line;
+	char* last_newline;
+	char* last_to_last_newline;
+
+	uint error_count;
+	error_code error_occured;
+} Lexer;
+
 bool is_token_identical(Token* a, Token* b);
 
-void lexer_init(SourceFile* file);
-Token** lexer_run(error_code* out_error_code);
+Token** lexer_run(Lexer* lexer, SourceFile* file, error_code* out_error_code);
 
 typedef enum {
 	EXPR_NUMBER,
@@ -211,6 +224,7 @@ typedef struct {
 	Stmt** params; /* param is a statement to make it easier to add to scope */
 	Stmt** body;
 	bool is_function; /* false if decl */
+	bool public;
 } Func;
 
 typedef struct {
@@ -285,6 +299,11 @@ error_code resolve_run(void);
 void code_gen_init(Stmt** p_stmts, SourceFile* p_srcfile);
 void code_gen_run(void);
 
-error_code loader_load(SourceFile* file, Stmt** existing_stmts);
+typedef struct {
+	char* fpath;
+	char* obj_fpath;
+} Loader;
+
+error_code loader_load(Loader* loader, char* fpath, char* obj_fpath);
 
 #endif

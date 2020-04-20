@@ -1,80 +1,67 @@
 #include <ether/ether.h>
 
-static SourceFile* srcfile;
-static Token** tokens;
-static char** keywords;
+static void lexer_destroy(Lexer*);
 
-static char* start, *cur;
-static u64 line;
-static char* last_newline;
-static char* last_to_last_newline;
+static void lex_identifier(Lexer*);
+static void lex_number(Lexer*);
+static void lex_string(Lexer*);
+static void lex_char(Lexer*);
+static void lex_comment(Lexer*);
+static void lex_newline(Lexer*);
 
-static uint	 error_count;
-static error_code error_occured;
+static void add_token(Lexer*, TokenType);
+static void add_eof(Lexer*);
 
-static void lexer_destroy(void);
+static bool match_char(Lexer*, char);
+static bool is_at_end(Lexer*);
+static u32 get_column(Lexer*);
+static void error_at_current(Lexer*, const char*, ...);
 
-static void lex_identifier(void);
-static void lex_number(void);
-static void lex_string(void);
-static void lex_char(void);
-static void lex_comment(void);
-static void lex_newline(void);
+static void init_keywords(Lexer*);
 
-static void add_token(TokenType);
-static void add_eof(void);
+Token** lexer_run(Lexer* l, SourceFile* file, error_code* out_error_code) {
+	l->srcfile = file;
+	l->tokens = null;
+	l->start = l->srcfile->contents;
+	l->cur = l->srcfile->contents;
+	l->line = 1;
+	l->error_count = 0;
+	l->error_occured = false;
+	l->last_newline = l->srcfile->contents;
+	l->last_to_last_newline = null;
+	l->keywords = null;
 
-static bool match_char(char);
-static bool is_at_end(void);
-static u32 get_column(void);
-static void error_at_current(const char*, ...);
+	init_keywords(l);
 
-static void init_keywords(void);
-
-void lexer_init(SourceFile* src) {
-	srcfile = src;
-	tokens = null;
-	start = srcfile->contents;
-	cur = srcfile->contents;
-	line = 1;
-	error_count = 0;
-	error_occured = false;
-	last_newline = srcfile->contents;
-	last_to_last_newline = null;
-
-	init_keywords();
-}
-
-Token** lexer_run(error_code* out_error_code) {
-	for (cur = srcfile->contents; cur != (srcfile->contents + srcfile->len);) {
-		start = cur;
-		switch (*cur) {
-			case ':': add_token(TOKEN_COLON); break;
-			case '+': add_token(TOKEN_PLUS);  break;
-			case '-': add_token(TOKEN_MINUS); break;
-			case '*': add_token(TOKEN_STAR);  break;
-			case '/': add_token(TOKEN_SLASH); break;
-			case '[': add_token(TOKEN_LEFT_BRACKET); break;
-			case ']': add_token(TOKEN_RIGHT_BRACKET); break;
-			case '=': add_token(TOKEN_EQUAL); break;
-			case ',': add_token(TOKEN_COMMA); break;
-			case '.': add_token(TOKEN_DOT); break;
+	for (l->cur = l->srcfile->contents; l->cur != (l->srcfile->contents + l->srcfile->len);) {
+		l->start = l->cur;
+		switch (*l->cur) {
+			case ':': add_token(l, TOKEN_COLON); break;
+			case '+': add_token(l, TOKEN_PLUS);  break;
+			case '-': add_token(l, TOKEN_MINUS); break;
+			case '*': add_token(l, TOKEN_STAR);  break;
+			case '/': add_token(l, TOKEN_SLASH); break;
+			case '[': add_token(l, TOKEN_LEFT_BRACKET); break;
+			case ']': add_token(l, TOKEN_RIGHT_BRACKET); break;
+			case '=': add_token(l, TOKEN_EQUAL); break;
+			case ',': add_token(l, TOKEN_COMMA); break;
+			case '.': add_token(l, TOKEN_DOT); break;
 				
-			case '"':  lex_string(); break;
-			case '\'': lex_char(); break;	
-			case '\n': lex_newline(); break;
+			case '"':  lex_string(l); break;
+			case '\'': lex_char(l); break;	
+			case '\n': lex_newline(l); break;
 
 			case '\t':
 			case '\r':
-			case ' ': ++cur; break;
+			case ' ': ++l->cur; break;
 
 			case ';': {
-				if (match_char(';')) {
-					lex_comment();
+				if (match_char(l, ';')) {
+					lex_comment(l);
 				}
 				else {
-					error_at_current("invalid semicolon here; did you mean ';;'?");
-					++cur;
+					error_at_current(l, "invalid semicolon here; did you mean ';;'?");
+					++l->cur;
 				}
 			} break;
 			
@@ -93,7 +80,7 @@ Token** lexer_run(error_code* out_error_code) {
 			case 'u': case 'v': case 'w': case 'x':
 			case 'y': case 'z':
 			case '_':
-				lex_identifier();
+				lex_identifier(l);
 				break;
 
 			case '0':
@@ -106,45 +93,45 @@ Token** lexer_run(error_code* out_error_code) {
 			case '7':
 			case '8':
 			case '9':
-				lex_number();
+				lex_number(l);
 				break;
 				
 			default: {
-				error_at_current("invalid char literal '%c' (dec: %d)", *cur, (int)(*cur));
-				++cur;
+				error_at_current(l, "invalid char literal '%c' (dec: %d)", *l->cur, (int)(*l->cur));
+				++l->cur;
 			} break;
 		}
 
-		if (error_count > LEXER_ERROR_COUNT_MAX) {
+		if (l->error_count > LEXER_ERROR_COUNT_MAX) {
 			/* TODO: refactor note in function */
 			printf("note: error count (%d) exceeded limit; aborting...\n",
-				   error_count);
-			if (out_error_code) *out_error_code = error_occured;
-			return tokens;
+				   l->error_count);
+			if (out_error_code) *out_error_code = l->error_occured;
+			return l->tokens;
 		}
 	}
 
-	if (out_error_code) *out_error_code = error_occured;
-	add_eof();
-	lexer_destroy();
-	return tokens;
+	if (out_error_code) *out_error_code = l->error_occured;
+	add_eof(l);
+	lexer_destroy(l);
+	return l->tokens;
 }
 
-static void lexer_destroy(void) {
-	buf_free(keywords);
+static void lexer_destroy(Lexer* l) {
+	buf_free(l->keywords);
 }
 
-static void lex_identifier(void) {
-	++cur;
-	while (isalnum(*cur) || *cur == '_') {
-		++cur;
+static void lex_identifier(Lexer* l) {
+	++l->cur;
+	while (isalnum(*l->cur) || *l->cur == '_') {
+		++l->cur;
 	}
 
-	u64 keywords_len = buf_len(keywords);
-	char* keyword = str_intern_range(start, cur);
+	u64 keywords_len = buf_len(l->keywords);
+	char* keyword = str_intern_range(l->start, l->cur);
 	bool is_keyword = false;
 	for (uint i = 0; i < keywords_len; ++i) {
-		if (keyword == str_intern(keywords[i])) {
+		if (keyword == str_intern(l->keywords[i])) {
 			is_keyword = true;
 		}
 	}
@@ -152,87 +139,87 @@ static void lex_identifier(void) {
 	Token* new = (Token*)malloc(sizeof(Token));
 	new->type = is_keyword ? TOKEN_KEYWORD : TOKEN_IDENTIFIER;
 	new->lexeme = keyword;
-	new->srcfile = srcfile;
-	new->line = line;
-	new->column = get_column();
-	buf_push(tokens, new);
+	new->srcfile = l->srcfile;
+	new->line = l->line;
+	new->column = get_column(l);
+	buf_push(l->tokens, new);
 }
 
-static void lex_number(void) {
-	while (isdigit(*cur)) {
-		++cur;
+static void lex_number(Lexer* l) {
+	while (isdigit(*l->cur)) {
+		++l->cur;
 	}
 
-	if (*cur == '.') {
-		++cur;
+	if (*l->cur == '.') {
+		++l->cur;
 		bool after_dot = false;
-		while (isdigit(*cur)) {
-			++cur;
+		while (isdigit(*l->cur)) {
+			++l->cur;
 			after_dot = true;
 		}
 		if (!after_dot) {
-			error_at_current("expected digit after '.' in floating-point number");
+			error_at_current(l, "expected digit after '.' in floating-point number");
 		}
 	}
 
-	--cur;
-	add_token(TOKEN_NUMBER);
+	--l->cur;
+	add_token(l, TOKEN_NUMBER);
 }
 
-static void lex_string(void) {
-	++start;
-	++cur;
-	while ((*cur) != '"') {
-		if (*cur == '\0') {
-			error_at_current("missing terminating '\"'");
+static void lex_string(Lexer* l) {
+	++l->start;
+	++l->cur;
+	while ((*l->cur) != '"') {
+		if (*l->cur == '\0') {
+			error_at_current(l, "missing terminating '\"'");
 		}
-		++cur;
+		++l->cur;
 	}
-	--cur;
-	add_token(TOKEN_STRING);
-	++cur;
+	--l->cur;
+	add_token(l, TOKEN_STRING);
+	++l->cur;
 }
 
-static void lex_char(void) {
-	++start;
-	cur += 2;
+static void lex_char(Lexer* l) {
+	++l->start;
+	l->cur += 2;
 	/* TODO: escape sequences */
-	if ((*cur) != '\'') {
-		error_at_current("missing terminating \"'\"");
+	if ((*l->cur) != '\'') {
+		error_at_current(l, "missing terminating \"'\"");
 	}
-	--cur;
-	add_token(TOKEN_CHAR);
-	++cur;
+	--l->cur;
+	add_token(l, TOKEN_CHAR);
+	++l->cur;
 }
 
-static void lex_comment(void) {
-	while (*cur != '\n') {
-		if (*cur == '\0') return;
-		++cur;
+static void lex_comment(Lexer* l) {
+	while (*l->cur != '\n') {
+		if (*l->cur == '\0') return;
+		++l->cur;
 	}
 }
 
-static void lex_newline(void) {
-	last_to_last_newline = last_newline;
-	last_newline = cur;
-	++line;
-	++cur;
+static void lex_newline(Lexer* l) {
+	l->last_to_last_newline = l->last_newline;
+	l->last_newline = l->cur;
+	++l->line;
+	++l->cur;
 }
 
-static void add_token(TokenType type) {
+static void add_token(Lexer* l, TokenType type) {
 	Token* new = (Token*)malloc(sizeof(Token));
 	new->type = type;
-	new->lexeme = str_intern_range(start, ++cur);
-	new->srcfile = srcfile;
-	new->line = line;
-	new->column = get_column();
-	buf_push(tokens, new);
+	new->lexeme = str_intern_range(l->start, ++l->cur);
+	new->srcfile = l->srcfile;
+	new->line = l->line;
+	new->column = get_column(l);
+	buf_push(l->tokens, new);
 }
 
-static void add_eof(void) {
+static void add_eof(Lexer* l) {
 	bool newline = false;
-	u64 eof_line = line;
-	if (*(cur - 1) == '\n') {
+	u64 eof_line = l->line;
+	if (*(l->cur - 1) == '\n') {
 		newline = true;
 		--eof_line;
 	}
@@ -240,69 +227,70 @@ static void add_eof(void) {
 	Token* t = (Token*)malloc(sizeof(Token));
 	t->type = TOKEN_EOF;
 	t->lexeme = "";
-	t->srcfile = srcfile;
+	t->srcfile = l->srcfile;
 	t->line = eof_line;
-	if (newline) t->column = cur - last_to_last_newline - 1;
-	else t->column = cur - last_newline;
-	buf_push(tokens, t);
+	if (newline) t->column = l->cur - l->last_to_last_newline - 1;
+	else t->column = l->cur - l->last_newline;
+	buf_push(l->tokens, t);
 }
 
-static bool match_char(char c) {
-	if (!is_at_end()) {
-		if (*(cur + 1) == c) {
-			++cur;
+static bool match_char(Lexer* l, char c) {
+	if (!is_at_end(l)) {
+		if (*(l->cur + 1) == c) {
+			++l->cur;
 			return true;
 		}
 	}
 	return false;
 }
 
-static bool is_at_end(void) {
-	if (cur >= (srcfile->contents + srcfile->len)) {
+static bool is_at_end(Lexer* l) {
+	if (l->cur >= (l->srcfile->contents + l->srcfile->len)) {
 		return true;
 	}
 	return false;
 }
 
-static u32 get_column(void) {
-	u32 column = (start - last_newline);
-	column = (line == 1 ? column + 1 : column);
+static u32 get_column(Lexer* l) {
+	u32 column = (l->start - l->last_newline);
+	column = (l->line == 1 ? column + 1 : column);
 	return column;
 }
 
-static void error_at_current(const char* msg, ...) {
-	u32 column = get_column();
+static void error_at_current(Lexer* l, const char* msg, ...) {
+	u32 column = get_column(l);
 	va_list ap;
 	va_start(ap, msg);
-	printf("%s:%ld:%d: error: ", srcfile->fpath, line, column);
+	printf("%s:%ld:%d: error: ", l->srcfile->fpath, l->line, column);
 	vprintf(msg, ap);
 	printf("\n");
 	va_end(ap);
 
-	print_file_line_with_info(srcfile, line);
-	print_marker_arrow_with_info_ln(srcfile, line, column);
+	print_file_line_with_info(l->srcfile, l->line);
+	print_marker_arrow_with_info_ln(l->srcfile, l->line, column);
 
-	error_occured = ETHER_ERROR;
-	++error_count;
+	l->error_occured = ETHER_ERROR;
+	++l->error_count;
 }
 
-static void init_keywords(void) {
-	buf_push(keywords, str_intern("struct"));
-	buf_push(keywords, str_intern("defn"));
-	buf_push(keywords, str_intern("decl"));
-	buf_push(keywords, str_intern("load"));
-	buf_push(keywords, str_intern("let"));
-	buf_push(keywords, str_intern("if"));
-	buf_push(keywords, str_intern("elif"));
-	buf_push(keywords, str_intern("else"));
-	buf_push(keywords, str_intern("return"));	
-	buf_push(keywords, str_intern("set"));
-	buf_push(keywords, str_intern("deref"));
-	buf_push(keywords, str_intern("addr"));
-	buf_push(keywords, str_intern("at"));
-
-	buf_push(keywords, str_intern("int"));
-	buf_push(keywords, str_intern("char"));
-	buf_push(keywords, str_intern("bool"));
-	buf_push(keywords, str_intern("void"));
+static void init_keywords(Lexer* l) {
+	buf_push(l->keywords, str_intern("struct"));
+	buf_push(l->keywords, str_intern("defn"));
+	buf_push(l->keywords, str_intern("decl"));
+	buf_push(l->keywords, str_intern("pub"));	
+	buf_push(l->keywords, str_intern("load"));
+	buf_push(l->keywords, str_intern("let"));
+	buf_push(l->keywords, str_intern("if"));
+	buf_push(l->keywords, str_intern("elif"));
+	buf_push(l->keywords, str_intern("else"));
+	buf_push(l->keywords, str_intern("return"));	
+	buf_push(l->keywords, str_intern("set"));
+	buf_push(l->keywords, str_intern("deref"));
+	buf_push(l->keywords, str_intern("addr"));
+	buf_push(l->keywords, str_intern("at"));
+	
+	buf_push(l->keywords, str_intern("int"));
+	buf_push(l->keywords, str_intern("char"));
+	buf_push(l->keywords, str_intern("bool"));
+	buf_push(l->keywords, str_intern("void"));
 }

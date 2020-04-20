@@ -21,7 +21,7 @@ static void parser_destroy(void);
 static Stmt* parse_decl(void);
 static Stmt* parse_stmt(void);
 static Stmt* parse_struct(Token*);
-static Stmt* parse_func(void);
+static Stmt* parse_func(bool);
 static error_code parse_func_header(Stmt*, bool);
 static Stmt* parse_func_decl(void);
 static void parse_load_stmt(void);
@@ -134,7 +134,9 @@ static Stmt* parse_decl(void) {
 		stmt = parse_var_decl(type, identifier, true);
 	}
 	else if (match_keyword("defn")) {
-		stmt = parse_func();
+		bool public = false;
+		if (match_keyword("pub")) public = true;
+		stmt = parse_func(public);
 	}
 	else if (match_keyword("decl")) {
 		stmt = parse_func_decl();
@@ -227,7 +229,7 @@ static Stmt* parse_struct(Token* identifier) {
 	return new;
 }
 
-static Stmt* parse_func(void) {
+static Stmt* parse_func(bool public) {
 	MAKE_STMT(new);
 	error_code header_parsing_error = parse_func_header(new, true);
 	if (header_parsing_error != ETHER_SUCCESS) return null;
@@ -244,6 +246,7 @@ static Stmt* parse_func(void) {
 
 	new->type = STMT_FUNC;
 	new->func.body = body;
+	new->func.public = public;
 	return new;
 }
 
@@ -310,6 +313,7 @@ static Stmt* parse_func_decl(void) {
 	consume_right_bracket();
 
 	new->type = STMT_FUNC;
+	new->func.public = true;
 	return new;
 }
 
