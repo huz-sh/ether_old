@@ -1,152 +1,137 @@
 #include <ether/ether.h>
 
-static Token** tokens;
-static u64 tokens_len;
-static Stmt** stmts;
-static SourceFile* srcfile;
+static void parser_destroy(Parser*);
 
-static char** built_in_data_types;
-static char** operator_keywords;
+static Stmt* parse_decl(Parser*);
+static Stmt* parse_stmt(Parser*);
+static Stmt* parse_struct(Parser*, Token*);
+static Stmt* parse_func(Parser*, bool);
+static error_code parse_func_header(Parser*, Stmt*, bool);
+static Stmt* parse_func_decl(Parser*);
+static void parse_load_stmt(Parser*);
+static Stmt* parse_var_decl(Parser*, DataType*, Token*, bool);
+static Stmt* parse_if_stmt(Parser*);
+static void parse_if_branch(Parser*, Stmt*, IfBranchType);
+static Stmt* parse_return_stmt(Parser*, Token*);
+static Stmt* parse_expr_stmt(Parser*);
 
-static u64 idx;
-static uint error_count;
-static bool error_occured;
-static uint error_bracket_counter;
-static bool error_panic;
-static bool start_stmt_bracket;
-static Stmt* current_function;
+static Expr* parse_expr(Parser*);
+static Expr* parse_dot_access_expr(Parser*);
+static Expr* parse_primary_expr(Parser*);
+static Expr* parse_func_call_expr(Parser*);
 
-static void parser_destroy(void);
+static Expr* make_dot_access_expr(Parser*, Expr*, Token*);
+static Expr* make_number_expr(Parser*, Token*);
+static Expr* make_char_expr(Parser*, Token*);
+static Expr* make_string_expr(Parser*, Token*);
+static Expr* make_variable_expr(Parser*, Token*);
+static Expr* make_func_call_expr(Parser*, Token*, Expr**);
 
-static Stmt* parse_decl(void);
-static Stmt* parse_stmt(void);
-static Stmt* parse_struct(Token*);
-static Stmt* parse_func(bool);
-static error_code parse_func_header(Stmt*, bool);
-static Stmt* parse_func_decl(void);
-static void parse_load_stmt(void);
-static Stmt* parse_var_decl(DataType*, Token*, bool);
-static Stmt* parse_if_stmt(void);
-static void parse_if_branch(Stmt*, IfBranchType);
-static Stmt* parse_return_stmt(Token*);
-static Stmt* parse_expr_stmt(void);
+static bool match_token_type(Parser*, TokenType);
+inline static bool match_left_bracket(Parser*);
+inline static bool match_right_bracket(Parser*);
+static bool match_keyword(Parser*, char*);
+static DataType* match_data_type(Parser*);
+static bool peek(Parser*, TokenType);
+static void expect_token_type(Parser*, TokenType, const char*, ...);
 
-static Expr* parse_expr(void);
-static Expr* parse_dot_access_expr(void);
-static Expr* parse_primary_expr(void);
-static Expr* parse_func_call_expr(void);
+inline static void consume_left_bracket(Parser*);
+inline static void consume_right_bracket(Parser*);
+inline static void consume_colon(Parser*);
+inline static Token* consume_identifier(Parser*);
+static DataType* consume_data_type(Parser*);
 
-static Expr* make_dot_access_expr(Expr*, Token*);
-static Expr* make_number_expr(Token*);
-static Expr* make_char_expr(Token*);
-static Expr* make_string_expr(Token*);
-static Expr* make_variable_expr(Token*);
-static Expr* make_func_call_expr(Token*, Expr**);
+static void goto_next_token(Parser*);
+static void goto_previous_token(Parser*);
+static Token* current(Parser*);
+static Token* previous(Parser*);
 
-static bool match_token_type(TokenType);
-inline static bool match_left_bracket(void);
-inline static bool match_right_bracket(void);
-static bool match_keyword(char*);
-static DataType* match_data_type(void);
-static bool peek(TokenType);
-static void expect_token_type(TokenType, const char*, ...);
+static void error_at_current(Parser*, const char*, ...);
+static void error(Parser*, Token*, const char*, ...);
+static void warning_at_previous(Parser*, const char*, ...);
+static void warning(Parser*, Token*, const char*, ...);
+static void sync_to_next_statement(Parser*);
 
-inline static void consume_left_bracket(void);
-inline static void consume_right_bracket(void);
-inline static void consume_colon(void);
-inline static Token* consume_identifier(void);
-static DataType* consume_data_type(void);
+static void init_built_in_data_types(Parser*);
+static void init_operator_keywords(Parser*);
 
-static void goto_next_token(void);
-static void goto_previous_token(void);
-static Token* current(void);
-static Token* previous(void);
-
-static void error_at_current(const char*, ...);
-static void error(Token*, const char*, ...);
-static void warning_at_previous(const char*, ...);
-static void warning(Token*, const char*, ...);
-static void sync_to_next_statement(void);
-
-static void init_built_in_data_types(void);
-static void init_operator_keywords(void);
-	
-#define CUR_ERROR uint current_error_count = error_count
-#define EXIT_ERROR if (error_count > current_error_count) return
+#define CUR_ERROR uint current_error_count = p->error_count
+#define EXIT_ERROR if (p->error_count > current_error_count) return
 
 #define CHECK_EOF(x) \
-if (current()->type == TOKEN_EOF) { \
-	error_at_current("end of file while parsing function body; did you forget a ']'?"); \
+if (current(p)->type == TOKEN_EOF) { \
+	error_at_current(p, "end of file while parsing function body; did you forget a ']'?"); \
 	return (x); \
 }
 
 #define CHECK_EOF_VOID_RETURN \
-if (current()->type == TOKEN_EOF) { \
-	error_at_current("end of file while parsing function body; did you forget a ']'?"); \
+if (current(p)->type == TOKEN_EOF) { \
+	error_at_current(p, "end of file while parsing function body; did you forget a ']'?"); \
 	return; \
 }
 
-void parser_init(Token** tokens_buf, SourceFile* file) {
-	tokens = tokens_buf;
-	tokens_len = buf_len(tokens_buf);
-	srcfile = file;
-	idx = 0;
-	error_count = 0;
-	error_occured = false;
-	error_bracket_counter = 0;
-	error_panic = false;
-	start_stmt_bracket = false;
-	current_function = null;
+Stmt** parser_run(Parser* p, Token** tokens_buf, SourceFile* file, error_code* out_error_code) {
+	p->tokens = tokens_buf;
+	p->tokens_len = buf_len(p->tokens);
+	p->stmts = null;
+	p->srcfile = file;
+	p->built_in_data_types = null;
+	p->operator_keywords = null;
+	p->idx = 0;
+	p->error_count = 0;
+	p->error_occured = false;
+	p->error_bracket_counter = 0;
+	p->error_panic = false;
+	p->start_stmt_bracket = false;
+	p->current_function = null;
 
-	init_built_in_data_types();
-	init_operator_keywords();
-}
+	init_built_in_data_types(p);
+	init_operator_keywords(p);
 
-Stmt** parser_run(error_code* out_error_code) {
-	while (current()->type != TOKEN_EOF) {
-		Stmt* stmt = parse_decl();
-		if (stmt) buf_push(stmts, stmt);
+	while (current(p)->type != TOKEN_EOF) {
+		Stmt* stmt = parse_decl(p);
+		if (stmt) buf_push(p->stmts, stmt);
 	}
-	if (out_error_code) *out_error_code = error_occured;
-	parser_destroy();
-	return stmts;
+	if (out_error_code) *out_error_code = p->error_occured;
+	parser_destroy(p);
+	return p->stmts;
 }
 
-void parser_destroy(void) {
-	buf_free(built_in_data_types);
+void parser_destroy(Parser* p) {
+	buf_free(p->built_in_data_types);
 }
 
 /* only top level statements (functions, structs, var) */
-static Stmt* parse_decl(void) {
-	consume_left_bracket();
-
-	/* TODO: parser necessary data types and identifiers in functions 
+static Stmt* parse_decl(Parser* p) {
+	consume_left_bracket(p);
+ 
+	/* TODO: parser necessary data types and identifiers in functions
 	 * and leave this clean */
 	Stmt* stmt = null;
-	if (match_keyword("struct")) {
-		Token* identifier = consume_identifier(); /* TODO: to refactor */
-		stmt = parse_struct(identifier);
+	if (match_keyword(p, "struct")) {
+		Token* identifier = consume_identifier(p); /* TODO: to refactor */
+		stmt = parse_struct(p, identifier);
 	}
-	else if (match_keyword("let")) {
-		DataType* type = consume_data_type(); /* TODO: to refactor */
-		consume_colon();
-		Token* identifier = consume_identifier();
-		stmt = parse_var_decl(type, identifier, true);
+	else if (match_keyword(p, "let")) {
+		DataType* type = consume_data_type(p); /* TODO: to refactor */
+		consume_colon(p);
+		Token* identifier = consume_identifier(p);
+		stmt = parse_var_decl(p, type, identifier, true);
 	}
-	else if (match_keyword("defn")) {
+	else if (match_keyword(p, "defn")) {
 		bool public = false;
-		if (match_keyword("pub")) public = true;
-		stmt = parse_func(public);
+		if (match_keyword(p, "pub")) public = true;
+		stmt = parse_func(p, public);
 	}
-	else if (match_keyword("decl")) {
-		stmt = parse_func_decl();
+	else if (match_keyword(p, "decl")) {
+		stmt = parse_func_decl(p);
 	}
-	else if (match_keyword("load")) {
-		parse_load_stmt();
+	else if (match_keyword(p, "load")) {
+		parse_load_stmt(p);
 		return null;
 	}
 	else {
-		error_at_current("expected keyword 'load', 'struct', 'defn', 'decl' or 'let' "
+		error_at_current(p, "expected keyword 'load', 'struct', 'defn', 'decl' or 'let' "
 						 "in global scope; did you miss a ']'?");
 		return null;
 	}
@@ -155,71 +140,71 @@ static Stmt* parse_decl(void) {
 }
 
 /* only statements inside scope / function */
-static Stmt* parse_stmt(void) {
-	start_stmt_bracket = true;
-	consume_left_bracket();
-	start_stmt_bracket = false;
+static Stmt* parse_stmt(Parser* p) {
+	p->start_stmt_bracket = true;
+	consume_left_bracket(p);
+	p->start_stmt_bracket = false;
 
 	Stmt* stmt = null;
-	if (match_keyword("let")) {
-		DataType* dt = consume_data_type();
-		consume_colon();
-		Token* identifier = consume_identifier();
-		stmt = parse_var_decl(dt, identifier, false);
+	if (match_keyword(p, "let")) {
+		DataType* dt = consume_data_type(p);
+		consume_colon(p);
+		Token* identifier = consume_identifier(p);
+		stmt = parse_var_decl(p, dt, identifier, false);
 	}
-	else if (match_keyword("return")) {
-		stmt = parse_return_stmt(previous());
+	else if (match_keyword(p, "return")) {
+		stmt = parse_return_stmt(p, previous(p));
 	}
-	else if (match_keyword("if")) {
-		stmt = parse_if_stmt();
+	else if (match_keyword(p, "if")) {
+		stmt = parse_if_stmt(p);
 	}
-	else if (match_keyword("elif") || match_keyword("else")) {
-		error(previous(), "'%s' branch without preceding 'if' statement; "
-						  "did you mean 'if'?", previous()->lexeme);
+	else if (match_keyword(p, "elif") || match_keyword(p, "else")) {
+		error(p, previous(p), "'%s' branch without preceding 'if' statement; "
+						  "did you mean 'if'?", previous(p)->lexeme);
 		return null;
 	}
-	else if (match_keyword("struct")) {
-		error(previous(), "cannot define a type inside a function-scope; "
+	else if (match_keyword(p, "struct")) {
+		error(p, previous(p), "cannot define a type inside a function-scope; "
 						  "did you miss a ']'?");
 		return null;
 	}
-	else if (match_keyword("defn")) {
-		error(previous(), "cannot define a function inside a function-scope; "
+	else if (match_keyword(p, "defn")) {
+		error(p, previous(p), "cannot define a function inside a function-scope; "
 						  "did you miss a ']'?");
 		return null;
 	}
-	else if (match_keyword("decl")) {
-		error(previous(), "cannot declare a function inside a function-scope; "
+	else if (match_keyword(p, "decl")) {
+		error(p, previous(p), "cannot declare a function inside a function-scope; "
 						  "did you miss a ']'?");
 		return null;
 	}
 	else {
-		goto_previous_token();
-		stmt = parse_expr_stmt();
+		goto_previous_token(p);
+		stmt = parse_expr_stmt(p);
 	}
 
-	error_panic = false;
+	p->error_panic = false;
 	return stmt;
 }
 
 #define MAKE_STMT(x) Stmt* x = (Stmt*)malloc(sizeof(Stmt));
 
-static Stmt* parse_struct(Token* identifier) {
+static Stmt* parse_struct(Parser* p, Token* identifier) {
 	Field** fields = null;
-	if (!match_right_bracket()) {
+	if (!match_right_bracket(p)) {
 		do {
-			consume_left_bracket();
-			DataType* d = consume_data_type();
-			consume_colon();
-			Token* t = consume_identifier();
+			consume_left_bracket(p);
+			DataType* d = consume_data_type(p);
+			consume_colon(p);
+			Token* t = consume_identifier(p);
 
 			Field* f = (Field*)malloc(sizeof(Field));
 			f->type = d;
 			f->identifier = t;
 			buf_push(fields, f);
-			consume_right_bracket();
+			consume_right_bracket(p);
 			CHECK_EOF(null);
-		} while (!match_right_bracket());
+		} while (!match_right_bracket(p));
 	}
 
 	MAKE_STMT(new);
@@ -229,17 +214,17 @@ static Stmt* parse_struct(Token* identifier) {
 	return new;
 }
 
-static Stmt* parse_func(bool public) {
+static Stmt* parse_func(Parser* p, bool public) {
 	MAKE_STMT(new);
-	error_code header_parsing_error = parse_func_header(new, true);
+	error_code header_parsing_error = parse_func_header(p, new, true);
 	if (header_parsing_error != ETHER_SUCCESS) return null;
-	current_function = new;
+	p->current_function = new;
 
 	Stmt** body = null;
-	while (!match_right_bracket()) {
+	while (!match_right_bracket(p)) {
 		CUR_ERROR;
 		CHECK_EOF(null);
-		Stmt* stmt = parse_stmt();
+		Stmt* stmt = parse_stmt(p);
 		if (stmt) buf_push(body, stmt);
 		EXIT_ERROR null;
 	}
@@ -250,41 +235,41 @@ static Stmt* parse_func(bool public) {
 	return new;
 }
 
-static error_code parse_func_header(Stmt* stmt, bool is_function) {
-	DataType* type = consume_data_type(); 
-	consume_colon();
-	Token* identifier = consume_identifier();
-	consume_left_bracket();
-	
+static error_code parse_func_header(Parser* p, Stmt* stmt, bool is_function) {
+	DataType* type = consume_data_type(p);
+	consume_colon(p);
+	Token* identifier = consume_identifier(p);
+	consume_left_bracket(p);
+
 	Stmt** params = null;
 	bool has_params = true;
 
-	if (current()->type == TOKEN_KEYWORD) {
-		if (str_intern(current()->lexeme) ==
+	if (current(p)->type == TOKEN_KEYWORD) {
+		if (str_intern(current(p)->lexeme) ==
 			str_intern("void")) {
-			
-			if (idx < tokens_len-1 && tokens[idx+1]->type == TOKEN_RIGHT_BRACKET) {
+
+			if (p->idx < p->tokens_len-1 && p->tokens[p->idx+1]->type == TOKEN_RIGHT_BRACKET) {
 				has_params = false;
 			}
 		}
 	}
-	
+
 	if (!has_params) {
-		goto_next_token();
-		consume_right_bracket();
+		goto_next_token(p);
+		consume_right_bracket(p);
 	}
-	else if (peek(TOKEN_RIGHT_BRACKET)) {
+	else if (peek(p, TOKEN_RIGHT_BRACKET)) {
 		/* we call warning at 'previous' because we want to
 		 * mark the left bracket as the cause */
-		warning_at_previous("empty function parameter list here:");
-		goto_next_token();
+		warning_at_previous(p, "empty function parameter list here:");
+		goto_next_token(p);
 	}
 	else {
 		do {
 			CUR_ERROR;
-			DataType* p_type = consume_data_type();
-			consume_colon();
-			Token* p_name = consume_identifier();
+			DataType* p_type = consume_data_type(p);
+			consume_colon(p);
+			Token* p_name = consume_identifier(p);
 
 			MAKE_STMT(param);
 			param->type = STMT_VAR_DECL;
@@ -293,10 +278,10 @@ static error_code parse_func_header(Stmt* stmt, bool is_function) {
 			param->var_decl.initializer = null;
 			param->var_decl.is_global_var = false;
 			buf_push(params, param);
-			
+
 			EXIT_ERROR ETHER_ERROR;
 			CHECK_EOF(ETHER_ERROR);
-		} while (!match_right_bracket());
+		} while (!match_right_bracket(p));
 	}
 
 	stmt->func.type = type;
@@ -306,24 +291,24 @@ static error_code parse_func_header(Stmt* stmt, bool is_function) {
 	return ETHER_SUCCESS;
 }
 
-static Stmt* parse_func_decl(void) {
+static Stmt* parse_func_decl(Parser* p) {
 	MAKE_STMT(new);
-	error_code header_parsing_error = parse_func_header(new, false);
+	error_code header_parsing_error = parse_func_header(p, new, false);
 	if (header_parsing_error != ETHER_SUCCESS) return null;
-	consume_right_bracket();
+	consume_right_bracket(p);
 
 	new->type = STMT_FUNC;
 	new->func.public = true;
 	return new;
 }
 
-static void parse_load_stmt(void) {
+static void parse_load_stmt(Parser* p) {
 	Token* fpath = null;
-	expect_token_type(TOKEN_STRING, "expected string here: ");
-	fpath = previous();
-	consume_right_bracket();
+	expect_token_type(p, TOKEN_STRING, "expected string here: ");
+	fpath = previous(p);
+	consume_right_bracket(p);
 
-	echar* cur_fpath = estr_create(srcfile->fpath);
+	echar* cur_fpath = estr_create(p->srcfile->fpath);
 	u64 last_forward_slash = estr_find_last_of(cur_fpath, '/'); /* TODO: change to '\' in windows */
 	echar* target_fpath = null;
 	target_fpath = estr_sub(cur_fpath, 0, last_forward_slash + 1);
@@ -331,25 +316,26 @@ static void parse_load_stmt(void) {
 
 	SourceFile* file = ether_read_file(target_fpath);
 	if (!file) {
-		error(fpath,
+		error(p, fpath,
 			  "cannot find \"%s\" (relative_to_working_dir: \"%s\");",
 			  fpath->lexeme, target_fpath);
 		return;
 	}
 
-	error_code err = loader_load(file, stmts);
-	if (err) {
+	// Loader loader;
+	// error_code err = loader_load(&loader, file, p->stmts);
+	// if (err) {
 		/* TODO: what to do here */
-	}
+	// }
 }
 
-static Stmt* parse_var_decl(DataType* d, Token* t, bool is_global_var) {
+static Stmt* parse_var_decl(Parser* p, DataType* d, Token* t, bool is_global_var) {
 	Expr* init = null;
-	if (!match_token_type(TOKEN_RIGHT_BRACKET)) {
-		/* TODO: in global variables, disable initializers, 
+	if (!match_token_type(p, TOKEN_RIGHT_BRACKET)) {
+		/* TODO: in global variables, disable initializers,
 		 * or only constant (no variable reference) initializers  */
-		init = parse_expr();
-		consume_right_bracket();
+		init = parse_expr(p);
+		consume_right_bracket(p);
 	}
 
 	MAKE_STMT(new);
@@ -361,32 +347,32 @@ static Stmt* parse_var_decl(DataType* d, Token* t, bool is_global_var) {
 	return new;
 }
 
-static Stmt* parse_if_stmt(void) {
+static Stmt* parse_if_stmt(Parser* p) {
 	MAKE_STMT(new);
 	new->type = STMT_IF;
-	
-	parse_if_branch(new, IF_IF_BRANCH);
+
+	parse_if_branch(p, new, IF_IF_BRANCH);
 
 	for (;;) {
-		if (tokens[idx]->type == TOKEN_LEFT_BRACKET) {
-			if ((idx+1) < tokens_len && tokens[idx+1]->type == TOKEN_KEYWORD) {
-				if (str_intern(tokens[idx+1]->lexeme) ==
+		if (p->tokens[p->idx]->type == TOKEN_LEFT_BRACKET) {
+			if ((p->idx+1) < p->tokens_len && p->tokens[p->idx+1]->type == TOKEN_KEYWORD) {
+				if (str_intern(p->tokens[p->idx+1]->lexeme) ==
 					str_intern("elif")) {
-					goto_next_token();
-					goto_next_token();
-					parse_if_branch(new, IF_ELIF_BRANCH);
+					goto_next_token(p);
+					goto_next_token(p);
+					parse_if_branch(p, new, IF_ELIF_BRANCH);
 				} else break;
 			} else break;
 		} else break;
 	}
-	
-	if (tokens[idx]->type == TOKEN_LEFT_BRACKET) {
-		if ((idx+1) < tokens_len && tokens[idx+1]->type == TOKEN_KEYWORD) {
-			if (str_intern(tokens[idx+1]->lexeme) ==
+
+	if (p->tokens[p->idx]->type == TOKEN_LEFT_BRACKET) {
+		if ((p->idx+1) < p->tokens_len && p->tokens[p->idx+1]->type == TOKEN_KEYWORD) {
+			if (str_intern(p->tokens[p->idx+1]->lexeme) ==
 				str_intern("else")) {
-				goto_next_token();
-				goto_next_token();
-				parse_if_branch(new, IF_ELSE_BRANCH);
+				goto_next_token(p);
+				goto_next_token(p);
+				parse_if_branch(p, new, IF_ELSE_BRANCH);
 			}
 		}
 	}
@@ -394,16 +380,16 @@ static Stmt* parse_if_stmt(void) {
 	return new;
 }
 
-static void parse_if_branch(Stmt* if_stmt, IfBranchType type) {
+static void parse_if_branch(Parser* p, Stmt* if_stmt, IfBranchType type) {
 	Expr* cond = null;
 	if (type != IF_ELSE_BRANCH) {
-		cond = parse_expr();
+		cond = parse_expr(p);
 	}
 
 	Stmt** body = null;
-	while (!match_right_bracket()) {
+	while (!match_right_bracket(p)) {
 		CUR_ERROR;
-		Stmt* stmt = parse_stmt();
+		Stmt* stmt = parse_stmt(p);
 		if (stmt) buf_push(body, stmt);
 		EXIT_ERROR;
 		CHECK_EOF_VOID_RETURN;
@@ -428,113 +414,113 @@ static void parse_if_branch(Stmt* if_stmt, IfBranchType type) {
 	}
 }
 
-static Stmt* parse_return_stmt(Token* keyword) {
+static Stmt* parse_return_stmt(Parser* p, Token* keyword) {
 	MAKE_STMT(new);
 	Expr* expr = null;
-	if (!match_right_bracket()) {
-		expr = parse_expr();
-		consume_right_bracket();
+	if (!match_right_bracket(p)) {
+		expr = parse_expr(p);
+		consume_right_bracket(p);
 	}
 	new->type = STMT_RETURN;
 	new->return_stmt.expr = expr;
 	new->return_stmt.keyword = keyword;
-	assert(current_function);
-	new->return_stmt.function_referernced = current_function;
-	return new;	
+	assert(p->current_function);
+	new->return_stmt.function_referernced = p->current_function;
+	return new;
 }
 
-static Stmt* parse_expr_stmt(void) {
+static Stmt* parse_expr_stmt(Parser* p) {
 	MAKE_STMT(new);
-	Expr* e = parse_expr();
+	Expr* e = parse_expr(p);
 	new->type = STMT_EXPR;
 	new->expr = e;
 	return new;
 }
 
-static Expr* parse_expr(void) {
-	return parse_dot_access_expr();
+static Expr* parse_expr(Parser* p) {
+	return parse_dot_access_expr(p);
 }
 
-static Expr* parse_dot_access_expr(void) {
-	Expr* left = parse_primary_expr();
-	while (match_token_type(TOKEN_DOT)) {
-		Token* right = consume_identifier();
-		left = make_dot_access_expr(left, right);
+static Expr* parse_dot_access_expr(Parser* p) {
+	Expr* left = parse_primary_expr(p);
+	while (match_token_type(p, TOKEN_DOT)) {
+		Token* right = consume_identifier(p);
+		left = make_dot_access_expr(p, left, right);
 	}
 	return left;
 }
 
-static Expr* parse_primary_expr(void) {
-	if (match_token_type(TOKEN_NUMBER)) {
-		return make_number_expr(previous());
+static Expr* parse_primary_expr(Parser* p) {
+	if (match_token_type(p, TOKEN_NUMBER)) {
+		return make_number_expr(p, previous(p));
 	}
-	else if (match_token_type(TOKEN_CHAR)) {
-		return make_char_expr(previous());
+	else if (match_token_type(p, TOKEN_CHAR)) {
+		return make_char_expr(p, previous(p));
 	}
-	else if (match_token_type(TOKEN_STRING)) {
-		return make_string_expr(previous());
+	else if (match_token_type(p, TOKEN_STRING)) {
+		return make_string_expr(p, previous(p));
 	}
-	else if (match_token_type(TOKEN_IDENTIFIER)) {
-		return make_variable_expr(previous());
+	else if (match_token_type(p, TOKEN_IDENTIFIER)) {
+		return make_variable_expr(p, previous(p));
 	}
-	else if (match_left_bracket()) {
-		return parse_func_call_expr();
+	else if (match_left_bracket(p)) {
+		return parse_func_call_expr(p);
 	}
 	else {
-		error_at_current("invalid syntax; expected identifier, "
+		error_at_current(p, "invalid syntax; expected identifier, "
 		 				 "literal, or grouping but got '%s'",
-						 current()->lexeme);
+						 current(p)->lexeme);
 	}
 	return null;
 }
 
-static Expr* parse_func_call_expr(void) {
+static Expr* parse_func_call_expr(Parser* p) {
 	Token* callee = null;
-	switch (current()->type) {
+	switch (current(p)->type) {
 		case TOKEN_IDENTIFIER:
 		case TOKEN_PLUS:
 		case TOKEN_MINUS:
 		case TOKEN_STAR:
 		case TOKEN_SLASH:
 		case TOKEN_EQUAL: {
-			callee = current();
-			goto_next_token();
+			callee = current(p);
+			goto_next_token(p);
 		} break;
 
 		default: {
 			bool got_valid_operator_keyword = false;
-			for (u64 keyword = 0; keyword < buf_len(operator_keywords); ++keyword) {
-				if (match_keyword(operator_keywords[keyword])) {
-					callee = previous();
+			for (u64 keyword = 0; keyword < buf_len(p->operator_keywords); ++keyword) {
+				if (match_keyword(p, p->operator_keywords[keyword])) {
+					callee = previous(p);
 					got_valid_operator_keyword = true;
 					break;
 				}
 			}
 
 			if (!got_valid_operator_keyword) {
-				error_at_current("expected identifier or operator here:");
+				error_at_current(p, "expected identifier or operator here:");
 				return null;
 			}
 		}
 	}
 
 	Expr** args = null;
-	if (!match_right_bracket()) {
+	if (!match_right_bracket(p)) {
 		do {
 			CUR_ERROR;
-			Expr* e = parse_expr();
+			Expr* e = parse_expr(p);
 			if (e) buf_push(args, e);
 			CHECK_EOF(null);
 			EXIT_ERROR null;
-		} while (!match_right_bracket());
+		} while (!match_right_bracket(p));
 	}
 
-	return make_func_call_expr(callee, args);
+	return make_func_call_expr(p, callee, args);
 }
 
 #define MAKE_EXPR(x) Expr* x = (Expr*)malloc(sizeof(Expr));
 
-static Expr* make_dot_access_expr(Expr* left, Token* right) {
+static Expr* make_dot_access_expr(Parser* p, Expr* left, Token* right) {
 	MAKE_EXPR(new);
 	new->type = EXPR_DOT_ACCESS;
 	new->head = left->head;
@@ -543,7 +529,7 @@ static Expr* make_dot_access_expr(Expr* left, Token* right) {
 	return new;
 }
 
-static Expr* make_number_expr(Token* t) {
+static Expr* make_number_expr(Parser* p, Token* t) {
 	MAKE_EXPR(new);
 	new->type = EXPR_NUMBER;
 	new->head = t;
@@ -551,7 +537,7 @@ static Expr* make_number_expr(Token* t) {
 	return new;
 }
 
-static Expr* make_char_expr(Token* t) {
+static Expr* make_char_expr(Parser* p, Token* t) {
 	MAKE_EXPR(new);
 	new->type = EXPR_CHAR;
 	new->head = t;
@@ -559,7 +545,7 @@ static Expr* make_char_expr(Token* t) {
 	return new;
 }
 
-static Expr* make_string_expr(Token* t) {
+static Expr* make_string_expr(Parser* p, Token* t) {
 	MAKE_EXPR(new);
 	new->type = EXPR_STRING;
 	new->head = t;
@@ -567,7 +553,7 @@ static Expr* make_string_expr(Token* t) {
 	return new;
 }
 
-static Expr* make_variable_expr(Token* t) {
+static Expr* make_variable_expr(Parser* p, Token* t) {
 	MAKE_EXPR(new);
 	new->type = EXPR_VARIABLE;
 	new->head = t;
@@ -575,7 +561,7 @@ static Expr* make_variable_expr(Token* t) {
 	return new;
 }
 
-static Expr* make_func_call_expr(Token* callee, Expr** args) {
+static Expr* make_func_call_expr(Parser* p, Token* callee, Expr** args) {
 	MAKE_EXPR(new);
 	new->type = EXPR_FUNC_CALL;
 	new->head = callee;
@@ -584,58 +570,58 @@ static Expr* make_func_call_expr(Token* callee, Expr** args) {
 	return new;
 }
 
-static bool match_token_type(TokenType t) {
-	if (peek(t)) {
-		goto_next_token();
+static bool match_token_type(Parser* p, TokenType t) {
+	if (peek(p, t)) {
+		goto_next_token(p);
 		return true;
 	}
 	return false;
 }
 
-static bool match_left_bracket(void) {
-	if (match_token_type(TOKEN_LEFT_BRACKET)) {
+static bool match_left_bracket(Parser* p) {
+	if (match_token_type(p, TOKEN_LEFT_BRACKET)) {
 		return true;
 	}
 	return false;
 }
 
-static bool match_right_bracket(void) {
-	if (match_token_type(TOKEN_RIGHT_BRACKET)) {
+static bool match_right_bracket(Parser* p) {
+	if (match_token_type(p, TOKEN_RIGHT_BRACKET)) {
 		return true;
 	}
 	return false;
 }
 
-static bool match_keyword(char* s) {
-	if (peek(TOKEN_KEYWORD) &&
-		str_intern(current()->lexeme) == str_intern(s)) {
-		goto_next_token();
+static bool match_keyword(Parser* p, char* s) {
+	if (peek(p, TOKEN_KEYWORD) &&
+		str_intern(current(p)->lexeme) == str_intern(s)) {
+		goto_next_token(p);
 		return true;
 	}
 	return false;
 }
 
-static DataType* match_data_type(void) {
+static DataType* match_data_type(Parser* p) {
 	DataType* new = null;
 	bool matched_main_type = false;
-	if (match_token_type(TOKEN_IDENTIFIER)) {
+	if (match_token_type(p, TOKEN_IDENTIFIER)) {
 		matched_main_type = true;
 		new = (DataType*)malloc(sizeof(DataType));
-		new->type = previous();
+		new->type = previous(p);
 	}
 	else {
-		for (uint i = 0; i < buf_len(built_in_data_types); ++i) {
-			if (match_keyword(built_in_data_types[i])) {
+		for (uint i = 0; i < buf_len(p->built_in_data_types); ++i) {
+			if (match_keyword(p, p->built_in_data_types[i])) {
 				matched_main_type = true;
 				new = (DataType*)malloc(sizeof(DataType));
-				new->type = previous();
+				new->type = previous(p);
 			}
 		}
 	}
 
 	if (matched_main_type) {
 		u8 pointer_count = 0;
-		while (match_token_type(TOKEN_STAR)) {
+		while (match_token_type(p, TOKEN_STAR)) {
 			pointer_count++;
 		}
 		new->pointer_count = pointer_count;
@@ -644,89 +630,89 @@ static DataType* match_data_type(void) {
 	return new;
 }
 
-static bool peek(TokenType t) {
-	if (idx >= tokens_len) {
+static bool peek(Parser* p, TokenType t) {
+	if (p->idx >= p->tokens_len) {
 		return false;
 	}
 
-	if (current()->type == t) {
+	if (current(p)->type == t) {
 		return true;
 	}
 	return false;
 }
 
-static void expect_token_type(TokenType t, const char* msg, ...) {
-	if (match_token_type(t)) {
+static void expect_token_type(Parser* p, TokenType t, const char* msg, ...) {
+	if (match_token_type(p, t)) {
 		return;
 	}
 	va_list ap;
 	va_start(ap, msg);
-	error_at_current(msg, ap);
+	error_at_current(p, msg, ap);
 	va_end(ap);
 }
 
-inline static void consume_left_bracket(void) {
-	if (!start_stmt_bracket) error_bracket_counter++;
-	expect_token_type(TOKEN_LEFT_BRACKET, "expected '[' here:");
+inline static void consume_left_bracket(Parser* p) {
+	if (!p->start_stmt_bracket) p->error_bracket_counter++;
+	expect_token_type(p, TOKEN_LEFT_BRACKET, "expected '[' here:");
 }
 
-inline static void consume_right_bracket(void) {
-	expect_token_type(TOKEN_RIGHT_BRACKET, "expected ']' here:");
+inline static void consume_right_bracket(Parser* p) {
+	expect_token_type(p, TOKEN_RIGHT_BRACKET, "expected ']' here:");
 }
 
-inline static void consume_colon(void) {
-	expect_token_type(TOKEN_COLON, "expected ':' here:");
+inline static void consume_colon(Parser* p) {
+	expect_token_type(p, TOKEN_COLON, "expected ':' here:");
 }
 
-inline static Token* consume_identifier(void) {
-	expect_token_type(TOKEN_IDENTIFIER, "expected identifier here:");
-	return previous();
+inline static Token* consume_identifier(Parser* p) {
+	expect_token_type(p, TOKEN_IDENTIFIER, "expected identifier here:");
+	return previous(p);
 }
 
-static DataType* consume_data_type(void) {
-	DataType* type = match_data_type();
+static DataType* consume_data_type(Parser* p) {
+	DataType* type = match_data_type(p);
 	if (!type) {
-		error_at_current("expected data type here:");
+		error_at_current(p, "expected data type here:");
 	}
 	return type;
 }
 
-static void goto_next_token(void) {
-	if (idx == 0 || (idx - 1) < tokens_len) {
-		++idx;
+static void goto_next_token(Parser* p) {
+	if (p->idx == 0 || (p->idx - 1) < p->tokens_len) {
+		++p->idx;
 	}
 }
 
-static void goto_previous_token(void) {
-	if (idx > 0) {
-		--idx;
+static void goto_previous_token(Parser* p) {
+	if (p->idx > 0) {
+		--p->idx;
 	}
 }
 
-static Token* current(void) {
-	if (idx >= tokens_len) {
+static Token* current(Parser* p) {
+	if (p->idx >= p->tokens_len) {
 		return null;
 	}
-	return tokens[idx];
+	return p->tokens[p->idx];
 }
 
-static Token* previous(void) {
-	if (idx >= tokens_len + 1) {
+static Token* previous(Parser* p) {
+	if (p->idx >= p->tokens_len + 1) {
 		return null;
 	}
-	return tokens[idx - 1];
+	return p->tokens[p->idx - 1];
 }
 
-static void error_at_current(const char* msg, ...) {
+static void error_at_current(Parser* p, const char* msg, ...) {
 	va_list ap;
 	va_start(ap, msg);
-	error(current(), msg, ap);
+	error(p, current(p), msg, ap);
 	va_end(ap);
 }
 
-static void error(Token* t, const char* msg, ...) {
-	if (error_panic) return;
-	error_panic = true;
+static void error(Parser* p, Token* t, const char* msg, ...) {
+	if (p->error_panic) return;
+	p->error_panic = true;
 
 	va_list ap;
 	va_start(ap, msg);
@@ -740,20 +726,20 @@ static void error(Token* t, const char* msg, ...) {
 	print_file_line_with_info(t->srcfile, t->line);
 	print_marker_arrow_with_info_ln(t->srcfile, t->line, t->column);
 
-	sync_to_next_statement();
+	sync_to_next_statement(p);
 
-	error_occured = ETHER_ERROR;
-	++error_count;
+	p->error_occured = ETHER_ERROR;
+	++p->error_count;
 }
 
-static void warning_at_previous(const char* msg, ...) {
+static void warning_at_previous(Parser* p, const char* msg, ...) {
 	va_list ap;
 	va_start(ap, msg);
-	warning(previous(), msg, ap);
+	warning(p, previous(p), msg, ap);
 	va_end(ap);
 }
 
-static void warning(Token* t, const char* msg, ...) {
+static void warning(Parser* p, Token* t, const char* msg, ...) {
 	va_list ap;
 	va_start(ap, msg);
 	printf("%s:%ld:%d: warning: ", t->srcfile->fpath, t->line, t->column);
@@ -762,46 +748,46 @@ static void warning(Token* t, const char* msg, ...) {
 	printf("\n");
 
 	print_file_line_with_info(t->srcfile, t->line);
-	print_marker_arrow_with_info_ln(t->srcfile, t->line, t->column);	
+	print_marker_arrow_with_info_ln(t->srcfile, t->line, t->column);
 }
 
-static void sync_to_next_statement(void) {
+static void sync_to_next_statement(Parser* p) {
 	while (true) {
-		if (current()->type == TOKEN_RIGHT_BRACKET) {
-			if (error_bracket_counter == 0) {
+		if (current(p)->type == TOKEN_RIGHT_BRACKET) {
+			if (p->error_bracket_counter == 0) {
 				/* stmt bkt */
-				goto_next_token();
+				goto_next_token(p);
 				return;
 			}
-			else if (error_bracket_counter > 0) {
-				error_bracket_counter--;
-				goto_next_token();
+			else if (p->error_bracket_counter > 0) {
+				p->error_bracket_counter--;
+				goto_next_token(p);
 			}
 		}
-		else if (current()->type == TOKEN_LEFT_BRACKET) {
-			error_bracket_counter++;
-			goto_next_token();
+		else if (current(p)->type == TOKEN_LEFT_BRACKET) {
+			p->error_bracket_counter++;
+			goto_next_token(p);
 		}
 		else {
-			if (current()->type == TOKEN_EOF) {
-				++error_count;
+			if (current(p)->type == TOKEN_EOF) {
+				++p->error_count;
 				return;
 			}
-			goto_next_token();
+			goto_next_token(p);
 		}
 	}
 }
 
-static void init_built_in_data_types(void) {
-	buf_push(built_in_data_types, str_intern("int"));
-	buf_push(built_in_data_types, str_intern("char"));
-	buf_push(built_in_data_types, str_intern("bool"));
-	buf_push(built_in_data_types, str_intern("void"));
+static void init_built_in_data_types(Parser* p) {
+	buf_push(p->built_in_data_types, str_intern("int"));
+	buf_push(p->built_in_data_types, str_intern("char"));
+	buf_push(p->built_in_data_types, str_intern("bool"));
+	buf_push(p->built_in_data_types, str_intern("void"));
 }
 
-static void init_operator_keywords(void) {
-	buf_push(operator_keywords, str_intern("set"));
-	buf_push(operator_keywords, str_intern("deref"));
-	buf_push(operator_keywords, str_intern("addr"));
-	buf_push(operator_keywords, str_intern("at"));
+static void init_operator_keywords(Parser* p) {
+	buf_push(p->operator_keywords, str_intern("set"));
+	buf_push(p->operator_keywords, str_intern("deref"));
+	buf_push(p->operator_keywords, str_intern("addr"));
+	buf_push(p->operator_keywords, str_intern("at"));
 }

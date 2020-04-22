@@ -17,7 +17,7 @@ CC := gcc
 ASM := nasm
 AR := ar
 
-CFLAGS := -w -g -nostdlib
+CFLAGS := -w -g -O0 -nostdlib
 ASMFLAGS := -felf64
 ARFLAGS := rcs
 

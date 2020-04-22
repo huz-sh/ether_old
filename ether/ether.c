@@ -31,8 +31,8 @@ int main(int argc, char** argv) {
 #endif
 
 	err = false;
-	parser_init(tokens, srcfile);
-	Stmt** stmts = parser_run(&err);
+	Parser parser;
+	Stmt** stmts = parser_run(&parser, tokens, srcfile, &err);
 	if (err == ETHER_ERROR) quit();
 
 #if PRINT_AST

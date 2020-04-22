@@ -269,8 +269,26 @@ struct Stmt {
 	};
 };
 
-void parser_init(Token** tokens_buf, SourceFile* file);
-Stmt** parser_run(error_code* out_error_code);
+typedef struct {
+	Token** tokens;
+	u64 tokens_len;
+	Stmt** stmts;
+	SourceFile* srcfile;
+
+	char** built_in_data_types;
+	char** operator_keywords;
+
+	u64 idx;
+	uint error_count;
+	bool error_occured;
+	uint error_bracket_counter;
+	bool error_panic;
+	bool start_stmt_bracket;
+	Stmt* current_function;
+} Parser;
+
+Stmt** parser_run(Parser* parser, Token** tokens,
+				  SourceFile* file, error_code* out_error_code);
 
 #ifdef _DEBUG
 #define print_ast(stmts) print_ast_debug(stmts)
