@@ -24,7 +24,7 @@ run: $(BIN_FILE)
 	gcc -o $(BIN_DIR)/a.out res/hello.o -lc -lm -Wl,--dynamic-linker=/usr/lib64/ld-linux-x86-64.so.2 
 
 debug: $(ETHER_STDLIB) $(BIN_FILE)
-	@gdb --args $(BIN_FILE) res/hello.eth
+	gdb --args $(BIN_FILE) res/hello.eth
 
 $(BIN_FILE): $(OBJ_FILES)
 	echo $(BIN_FILE)
