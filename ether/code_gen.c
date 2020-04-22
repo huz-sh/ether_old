@@ -410,12 +410,17 @@ static void gen_func_call(Expr* expr) {
 			case TOKEN_PLUS:
 			case TOKEN_MINUS:
 			case TOKEN_STAR:
-			case TOKEN_SLASH: gen_arithmetic_expr(expr); break;
+			case TOKEN_SLASH: 
+				gen_arithmetic_expr(expr); return;
 
-			case TOKEN_EQUAL: gen_comparison_expr(expr); break;
+			case TOKEN_EQUAL: 
+			case TOKEN_LESS:
+			case TOKEN_LESS_EQUAL:
+			case TOKEN_GREATER:
+			case TOKEN_GREATER_EQUAL: 
+				gen_comparison_expr(expr); return;
 
-			
-			default: break;	
+			default: return;	
 		}
 	}
 }
@@ -473,23 +478,17 @@ static void gen_arithmetic_expr(Expr* expr) {
 static void gen_comparison_expr(Expr* expr) {
 	print_left_paren();
 	Expr** args = expr->func_call.args;
-	for (u64 i = 0; i < buf_len(args); ++i) {
-		gen_expr(args[i]);
-		
-		if (i != (buf_len(args) - 1)) {
-			if (expr->func_call.callee->type == TOKEN_EQUAL) {
-				print_space();
-				print_equal();
-				print_equal();
-				print_space();
-			}
-			else {
-				print_space();
-				print_token(expr->func_call.callee);
-				print_space();
-			}
-		}
+	gen_expr(args[0]);
+	print_space();
+	if (expr->func_call.callee->type == TOKEN_EQUAL) {
+		print_equal();
+		print_equal();
 	}
+	else {
+		print_token(expr->func_call.callee);
+	}
+	print_space();
+	gen_expr(args[1]);
 	print_right_paren();
 }
 

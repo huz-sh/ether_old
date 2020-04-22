@@ -343,10 +343,16 @@ static DataType* resolve_func_call(Expr* expr) {
 			case TOKEN_PLUS:
 			case TOKEN_MINUS:
 			case TOKEN_STAR:
-			case TOKEN_SLASH: return resolve_arithmetic_expr(expr);
+			case TOKEN_SLASH: 
+				return resolve_arithmetic_expr(expr); 
 
-			case TOKEN_EQUAL: return resolve_comparison_expr(expr);
-				
+			case TOKEN_EQUAL: 
+			case TOKEN_LESS:
+			case TOKEN_LESS_EQUAL:
+			case TOKEN_GREATER:
+			case TOKEN_GREATER_EQUAL: 
+				return resolve_comparison_expr(expr); 
+
 			default: return null;	
 		}
 	}

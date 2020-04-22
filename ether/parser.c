@@ -482,7 +482,11 @@ static Expr* parse_func_call_expr(Parser* p) {
 		case TOKEN_MINUS:
 		case TOKEN_STAR:
 		case TOKEN_SLASH:
-		case TOKEN_EQUAL: {
+		case TOKEN_EQUAL:
+		case TOKEN_LESS:
+		case TOKEN_LESS_EQUAL:
+		case TOKEN_GREATER:
+		case TOKEN_GREATER_EQUAL: {
 			callee = current(p);
 			goto_next_token(p);
 		} break;

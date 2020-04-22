@@ -366,10 +366,19 @@ static void check_func_call(Expr* expr) {
 			case TOKEN_PLUS:
 			case TOKEN_MINUS:
 			case TOKEN_STAR:
-			case TOKEN_SLASH: check_arithmetic_expr(expr); break;
+			case TOKEN_SLASH: 
+				check_arithmetic_expr(expr); 
+				return;
 
-			case TOKEN_EQUAL: check_comparision_expr(expr); return;
-			default: break;	
+			case TOKEN_EQUAL: 
+			case TOKEN_LESS:
+			case TOKEN_LESS_EQUAL:
+			case TOKEN_GREATER:
+			case TOKEN_GREATER_EQUAL: 
+				check_comparision_expr(expr); 
+				return;
+
+			default: return;	
 		}
 	}
 }
@@ -483,8 +492,9 @@ static void check_comparision_expr(Expr* expr) {
 			
 	if (error_token != null) {
 		error(error_token,
-			  "'=' operator need 2 arguments to operate, "
-			  "but got %ld argument(s);", args_len);
+			  "'%s' operator need 2 arguments to operate, "
+			  "but got %ld argument(s);", 
+			  expr->func_call.callee->lexeme, args_len);
 		return;
 	}
 

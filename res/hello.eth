@@ -2,6 +2,7 @@
 [decl void*:malloc [int:size]]
 [decl void:free [void*:ptr]]
 [decl void:putchar [char: c]]
+[decl void:fputs [char*:c int:i]]
 
 [load "hello_world.eth"]
 
@@ -12,9 +13,7 @@
     [let vec2*:v]
 	[set v.y 2]
 
-	[let int:num 2]
-	[let char:c [+ num '0']]
-	[putchar c]]
+	[putn 3]]
 
 [struct vec2
     [int:x]
@@ -22,3 +21,10 @@
 
 [defn pub int:add [int:a int:b]
     [return [+ a b]]]
+
+[defn void:putn [int:n]
+	[if [> n 0]
+		[let int:a [/ n 10]]
+		[set n [- n [* 10 a]]]
+		[putn a]]
+	[putchar [+ '0' n]]]

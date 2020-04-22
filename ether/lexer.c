@@ -46,6 +46,8 @@ Token** lexer_run(Lexer* l, SourceFile* file, error_code* out_error_code) {
 			case '=': add_token(l, TOKEN_EQUAL); break;
 			case ',': add_token(l, TOKEN_COMMA); break;
 			case '.': add_token(l, TOKEN_DOT); break;
+			case '<': match_char(l, '=') ? add_token(l, TOKEN_LESS_EQUAL) : add_token(l, TOKEN_LESS); break;
+			case '>': match_char(l, '=') ? add_token(l, TOKEN_GREATER_EQUAL) : add_token(l, TOKEN_GREATER); break;
 				
 			case '"':  lex_string(l); break;
 			case '\'': lex_char(l); break;	
