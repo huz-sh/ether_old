@@ -41,6 +41,7 @@ Token** lexer_run(Lexer* l, SourceFile* file, error_code* out_error_code) {
 			case '-': add_token(l, TOKEN_MINUS); break;
 			case '*': add_token(l, TOKEN_STAR);  break;
 			case '/': add_token(l, TOKEN_SLASH); break;
+			case '%': add_token(l, TOKEN_PERCENT); break;
 			case '[': add_token(l, TOKEN_LEFT_BRACKET); break;
 			case ']': add_token(l, TOKEN_RIGHT_BRACKET); break;
 			case '=': add_token(l, TOKEN_EQUAL); break;

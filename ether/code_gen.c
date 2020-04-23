@@ -478,6 +478,7 @@ static void gen_func_call(Expr* expr) {
 			case TOKEN_MINUS:
 			case TOKEN_STAR:
 			case TOKEN_SLASH: 
+			case TOKEN_PERCENT:
 				gen_arithmetic_expr(expr); return;
 
 			case TOKEN_EQUAL: 

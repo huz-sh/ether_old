@@ -1,35 +1,12 @@
-[decl int:puts [char*:str]]
-[decl void*:malloc [int:size]]
-[decl void:free [void*:ptr]]
-[decl void:putchar [char: c]]
-
-[load "hello_world.eth"]
-
-[let int:n 12]
+[decl void:putchar [char:c]]
+[decl int:rand [void]]
+[decl void:srand [int:i]]
+[decl int:time [void*:p]]
 
 [defn int:main [void]
-	[let int:counter 0]
-	[let void*:input_buffer [malloc 64]]
-	[free input_buffer]
-
-	[let u8:byte 1]
-
-	[putn 3]
-	[for i to [+ 2 4]
-		[puts "Hello"]]
-	[for i to [+ 2 4]
-		[puts "Hello"]]
-	[for j to [get_num]
-		[puts "Hello"]]]
-
-[struct vec2
-    [int:x]
-	[int:y]]
-
-[struct custom_type]
-
-[defn pub int:add [int:a int:b]
-    [return [+ a b]]]
+	[srand [time 0]]
+	[let int:comp_guess [% [rand] 100]]
+	[putn comp_guess]]
 
 [defn void:putn [int:n]
 	[if [> n 0]
@@ -37,6 +14,3 @@
 		[set n [- n [* 10 a]]]
 		[putn a]]
 	[putchar [+ '0' n]]]
-
-[defn int:get_num [void]
-	[return 2]]

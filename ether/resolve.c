@@ -19,6 +19,7 @@ static DataType* string_data_type;
 static DataType* bool_data_type;
 static ImplicitCastTypeMap* implicit_cast_types;
 static char** types_already_checked;
+static TypeSizeMap* type_sizes;
 
 static void resolve_destroy(void);
 
@@ -374,6 +375,7 @@ static DataType* resolve_func_call(Expr* expr) {
 			case TOKEN_MINUS:
 			case TOKEN_STAR:
 			case TOKEN_SLASH: 
+			case TOKEN_PERCENT:
 				return resolve_arithmetic_expr(expr); 
 
 			case TOKEN_EQUAL: 
@@ -698,31 +700,23 @@ static u64 get_data_type_size(DataType* type) {
 		return sizeof(void*);
 	}
 	else {
-		if (str_intern(type->type->lexeme) ==
-			str_intern("int")) {
-			return sizeof(int);
-		}
-		else if (str_intern(type->type->lexeme) ==
-				 str_intern("char")) {
-			return sizeof(char);
-		}
-		else if (str_intern(type->type->lexeme) ==
-				 str_intern("bool")) {
-			return sizeof(u8); /* bool takes a bytes in Ether */
-		}
-		else {
-			if (type->type->type == TOKEN_IDENTIFIER) {
-				u64 total_count = 0;
-				Stmt* struct_ref = find_struct_by_name(type->type->lexeme);
-				assert(struct_ref);
-				for (u64 i = 0; i < buf_len(struct_ref->struct_stmt.fields); ++i) {
-					total_count +=
-						get_data_type_size(struct_ref->struct_stmt.fields[i]->type);
-				}
-				return total_count;
+		for (u64 i = 0; i < buf_len(type_sizes); ++i) {
+			if (str_intern(type->type->lexeme) ==
+				str_intern(type_sizes[i].type)) {
+				return type_sizes[i].size;
 			}
-			assert(0);
 		}
+		if (type->type->type == TOKEN_IDENTIFIER) {
+			u64 total_count = 0;
+			Stmt* struct_ref = find_struct_by_name(type->type->lexeme);
+			assert(struct_ref);
+			for (u64 i = 0; i < buf_len(struct_ref->struct_stmt.fields); ++i) {
+				total_count +=
+					get_data_type_size(struct_ref->struct_stmt.fields[i]->type);
+			}
+			return total_count;
+		}
+		assert(0);
 	}
 }
 
@@ -760,4 +754,29 @@ static void init_data_types(void) {
 		(ImplicitCastTypeMap){ str_intern("int"), str_intern("u32") });
 	buf_push(implicit_cast_types, 
 		(ImplicitCastTypeMap){ str_intern("int"), str_intern("u64") });
+
+	buf_push(type_sizes,
+		(TypeSizeMap){ str_intern("int"), sizeof(int) });
+	buf_push(type_sizes,
+		(TypeSizeMap){ str_intern("char"), sizeof(char) });
+	buf_push(type_sizes,
+		(TypeSizeMap){ str_intern("bool"), sizeof(u8) });
+
+	buf_push(type_sizes,
+		(TypeSizeMap){ str_intern("i8"), sizeof(i8) });
+	buf_push(type_sizes,
+		(TypeSizeMap){ str_intern("i16"), sizeof(i16) });
+	buf_push(type_sizes,
+		(TypeSizeMap){ str_intern("i32"), sizeof(i32) });
+	buf_push(type_sizes,
+		(TypeSizeMap){ str_intern("i64"), sizeof(i64) });
+
+	buf_push(type_sizes,
+		(TypeSizeMap){ str_intern("u8"), sizeof(u8) });
+	buf_push(type_sizes,
+		(TypeSizeMap){ str_intern("u16"), sizeof(u16) });
+	buf_push(type_sizes,
+		(TypeSizeMap){ str_intern("u32"), sizeof(u32) });
+	buf_push(type_sizes,
+		(TypeSizeMap){ str_intern("u64"), sizeof(u64) });
 }

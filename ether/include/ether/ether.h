@@ -112,6 +112,7 @@ typedef enum {
 	TOKEN_MINUS,
 	TOKEN_STAR,
 	TOKEN_SLASH,
+	TOKEN_PERCENT,
 	TOKEN_EQUAL,
 	TOKEN_LESS,
 	TOKEN_LESS_EQUAL,
@@ -327,6 +328,11 @@ typedef struct {
 	char* a;
 	char* b;
 } ImplicitCastTypeMap;
+
+typedef struct {
+	char* type;
+	u64 size;
+} TypeSizeMap;
 
 void resolve_init(Stmt** p_stmts, Stmt** p_structs);
 error_code resolve_run(void);

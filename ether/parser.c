@@ -198,6 +198,11 @@ static Stmt* parse_struct(Parser* p, Token* identifier) {
 	if (!match_right_bracket(p)) {
 		do {
 			consume_left_bracket(p);
+			if (!match_keyword(p, "let")) {
+				/* TODO: refactor into function */
+				error(p, current(p), "expected 'let' keyword here: ");
+				continue;
+			}
 			DataType* d = consume_data_type(p);
 			consume_colon(p);
 			Token* t = consume_identifier(p);
@@ -519,6 +524,7 @@ static Expr* parse_func_call_expr(Parser* p) {
 		case TOKEN_MINUS:
 		case TOKEN_STAR:
 		case TOKEN_SLASH:
+		case TOKEN_PERCENT:
 		case TOKEN_EQUAL:
 		case TOKEN_LESS:
 		case TOKEN_LESS_EQUAL:

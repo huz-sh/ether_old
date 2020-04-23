@@ -85,6 +85,7 @@ static void print_struct(Stmt* stmt) {
 		print_newline();
 		print_tab();
 		print_left_bracket();
+		print_string("let ");
 		print_data_type(fields[i]->type);
 		print_colon();
 		print_space();
@@ -316,7 +317,9 @@ inline static void print_newline(void) {
 }
 
 inline static void print_tab(void) {
-	print_string("	  ");
+	for (u8 i = 0; i < TAB_SIZE; ++i) {
+		print_space();
+	}
 }
 
 inline static void print_string(const char* string) {
