@@ -26,6 +26,7 @@ static void resolve_func(Stmt*);
 static void resolve_var_decl(Stmt*);
 static void resolve_if_stmt(Stmt*);
 static void resolve_if_branch(IfBranch*, IfBranchType);
+static void resolve_for_stmt(Stmt*);
 static void resolve_return_stmt(Stmt*);
 static void resolve_expr_stmt(Stmt*);
 
@@ -104,6 +105,7 @@ static void resolve_stmt(Stmt* stmt) {
 		case STMT_FUNC: resolve_func(stmt); break;
 		case STMT_VAR_DECL: resolve_var_decl(stmt); break;
 		case STMT_IF: resolve_if_stmt(stmt); break;
+		case STMT_FOR: resolve_for_stmt(stmt); break;
 		case STMT_RETURN: resolve_return_stmt(stmt); break;
 		case STMT_EXPR: resolve_expr_stmt(stmt); break;
 		case STMT_STRUCT: break;	/* TODO: check */
@@ -176,6 +178,29 @@ static void resolve_if_branch(IfBranch* branch, IfBranchType type) {
 
 	for (u64 i = 0; i < buf_len(branch->body); ++i) {
 		resolve_stmt(branch->body[i]);
+	}
+}
+
+static void resolve_for_stmt(Stmt* stmt) {
+	/* TODO: if for loop counter is modifiable, change this */
+	CHECK_ERROR;
+	DataType* to_type = resolve_expr(stmt->for_stmt.to);
+	EXIT_ERROR_VOID_RETURN;
+
+	int match = data_type_match(to_type, int_data_type);
+	if (match == DATA_TYPE_NOT_MATCH) {
+		error(stmt->for_stmt.to->head,
+			  "expected 'int' data type in 'for' target expression, "
+			  "but got '%s';", data_type_to_string(to_type));
+	}
+	else if (match == DATA_TYPE_IMPLICIT_MATCH) {
+		warning(stmt->for_stmt.to->head,
+				"implicit cast to 'int' from '%s' in 'for' target expression;",
+				data_type_to_string(to_type));
+	}
+
+	for (u64 i = 0; i < buf_len(stmt->for_stmt.body); ++i) {
+		resolve_stmt(stmt->for_stmt.body[i]);
 	}
 }
 

@@ -12,6 +12,7 @@ static void parse_load_stmt(Parser*);
 static Stmt* parse_var_decl(Parser*, DataType*, Token*, bool);
 static Stmt* parse_if_stmt(Parser*);
 static void parse_if_branch(Parser*, Stmt*, IfBranchType);
+static Stmt* parse_for_stmt(Parser*);
 static Stmt* parse_return_stmt(Parser*, Token*);
 static Stmt* parse_expr_stmt(Parser*);
 
@@ -157,6 +158,9 @@ static Stmt* parse_stmt(Parser* p) {
 	}
 	else if (match_keyword(p, "if")) {
 		stmt = parse_if_stmt(p);
+	}
+	else if (match_keyword(p, "for")) {
+		stmt = parse_for_stmt(p);
 	}
 	else if (match_keyword(p, "elif") || match_keyword(p, "else")) {
 		error(p, previous(p), "'%s' branch without preceding 'if' statement; "
@@ -412,6 +416,39 @@ static void parse_if_branch(Parser* p, Stmt* if_stmt, IfBranchType type) {
 			if_stmt->if_stmt.else_branch = branch;
 		} break;
 	}
+}
+
+static Stmt* parse_for_stmt(Parser* p) {
+	Token* identifier = consume_identifier(p);
+	if (!match_keyword(p, "to")) {
+		error(p, current(p), "expected 'to' keyword here: ");
+		return null;
+	}
+
+	Expr* to = parse_expr(p);
+
+	Stmt** body = null;
+	while (!match_right_bracket(p)) {
+		CUR_ERROR;
+		Stmt* stmt = parse_stmt(p);
+		if (stmt) buf_push(body, stmt);
+		EXIT_ERROR null;
+		CHECK_EOF(null);
+	}
+	
+	MAKE_STMT(counter);
+	counter->type = STMT_VAR_DECL;
+	counter->var_decl.type = null;
+	counter->var_decl.identifier = identifier;
+	counter->var_decl.initializer = null;
+	counter->var_decl.is_global_var = false;
+
+	MAKE_STMT(new);
+	new->type = STMT_FOR;
+	new->for_stmt.counter = counter;
+	new->for_stmt.to = to;
+	new->for_stmt.body = body;
+	return new;
 }
 
 static Stmt* parse_return_stmt(Parser* p, Token* keyword) {

@@ -25,6 +25,7 @@ static void check_global_var_decl(Stmt*);
 static void check_var_decl(Stmt*);
 static void check_if_stmt(Stmt*);
 static void check_if_branch(IfBranch*, IfBranchType);
+static void check_for_stmt(Stmt*);
 static void check_return_stmt(Stmt*);
 static void check_expr_stmt(Stmt*);
 
@@ -42,7 +43,7 @@ static void check_variable_expr(Expr*);
 static void check_data_type(DataType*);
 static Stmt* check_data_type_return_struct_if_identifier(DataType*_type);
 static void check_if_variable_is_in_scope(Expr*);
-static bool is_variable_declared(Stmt*);
+static bool is_variable_declared(Stmt*, Scope*);
 static bool func_decls_match(Stmt*, Stmt*);
 
 static Scope* make_scope(Scope*);
@@ -131,7 +132,7 @@ static void add_decl_stmt(Stmt* stmt) {
 	}
 
 	else if (stmt->type == STMT_VAR_DECL) {
-		if (!is_variable_declared(stmt)) {
+		if (!is_variable_declared(stmt, null)) {
 			add_variable_to_scope(stmt);
 		}
 	}
@@ -164,6 +165,7 @@ static void check_stmt(Stmt* stmt) {
 			}
 		} break;
 		case STMT_IF: check_if_stmt(stmt); break;
+		case STMT_FOR: check_for_stmt(stmt); break;
 		case STMT_RETURN: check_return_stmt(stmt); break;	
 		case STMT_EXPR: check_expr_stmt(stmt); break;
 	}
@@ -195,7 +197,7 @@ static void check_func(Stmt* stmt) {
 	CHANGE_SCOPE(scope);
 
 	for (u64 param = 0; param < buf_len(stmt->func.params); ++param) {
-		if (!is_variable_declared(stmt->func.params[param])) {
+		if (!is_variable_declared(stmt->func.params[param], global_scope)) {
 			add_variable_to_scope(stmt->func.params[param]);
 		}
 	}
@@ -219,7 +221,7 @@ static void check_func_decl(Stmt* stmt) {
 	CHANGE_SCOPE(scope);
 
 	for (u64 param = 0; param < buf_len(stmt->func.params); ++param) {
-		if (!is_variable_declared(stmt->func.params[param])) {
+		if (!is_variable_declared(stmt->func.params[param], global_scope)) {
 			add_variable_to_scope(stmt->func.params[param]);
 		}
 	}
@@ -245,7 +247,7 @@ static void check_var_decl(Stmt* stmt) {
 
 	/* always remember to add this at the end of check_var_decl,
 	 * not in the middle */
-	if (!is_variable_declared(stmt)) {
+	if (!is_variable_declared(stmt, null)) {
 		add_variable_to_scope(stmt);
 	}
 }
@@ -272,6 +274,19 @@ static void check_if_branch(IfBranch* branch, IfBranchType type) {
 		check_stmt(branch->body[i]);
 	}
 	REVERT_SCOPE(scope);		
+}
+
+static void check_for_stmt(Stmt* stmt) {
+	CHANGE_SCOPE(scope);
+	if (!is_variable_declared(stmt->for_stmt.counter, null)) {
+		add_variable_to_scope(stmt->for_stmt.counter);
+	}
+	check_expr(stmt->for_stmt.to);
+
+	for (u64 i = 0; i < buf_len(stmt->for_stmt.body); ++i) {
+		check_stmt(stmt->for_stmt.body[i]);
+	}
+	REVERT_SCOPE(scope);
 }
 
 static void check_return_stmt(Stmt* stmt) {
@@ -542,9 +557,9 @@ static Stmt* check_data_type_return_struct_if_identifier(DataType* data_type) {
 	return null;
 }
 
-static bool is_variable_declared(Stmt* var) {
+static bool is_variable_declared(Stmt* var, Scope* scope_to_check) {
 	Scope* scope = current_scope;
-	while (scope != null) {
+	while (scope != scope_to_check) {
 		for (u64 i = 0; i < buf_len(scope->variables); ++i) {
 			if (is_token_identical(var->var_decl.identifier,
 								   scope->variables[i]->var_decl.identifier)) {

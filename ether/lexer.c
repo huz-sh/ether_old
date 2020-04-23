@@ -285,6 +285,8 @@ static void init_keywords(Lexer* l) {
 	buf_push(l->keywords, str_intern("if"));
 	buf_push(l->keywords, str_intern("elif"));
 	buf_push(l->keywords, str_intern("else"));
+	buf_push(l->keywords, str_intern("for"));
+	buf_push(l->keywords, str_intern("to"));
 	buf_push(l->keywords, str_intern("return"));	
 	buf_push(l->keywords, str_intern("set"));
 	buf_push(l->keywords, str_intern("deref"));

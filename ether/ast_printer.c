@@ -11,6 +11,7 @@ static void print_func_decl(Stmt*);
 static void print_var_decl(Stmt*);
 static void print_if_stmt(Stmt*);
 static void print_if_branch(IfBranch*, IfBranchType);
+static void print_for_stmt(Stmt*);
 static void print_return_stmt(Stmt*);
 static void print_expr_stmt(Stmt*);
 
@@ -61,6 +62,7 @@ static void print_stmt(Stmt* stmt) {
 		} break;
 		case STMT_VAR_DECL: 	print_var_decl(stmt); break;
 		case STMT_IF:			print_if_stmt(stmt); break;
+		case STMT_FOR:			print_for_stmt(stmt); break;
 		case STMT_RETURN:		print_return_stmt(stmt); break;	
 		case STMT_EXPR:			print_expr_stmt(stmt); break;
 	}
@@ -183,6 +185,26 @@ static void print_if_branch(IfBranch* branch, IfBranchType type) {
 	tab_count--;
 	print_right_bracket();
 	print_newline();
+}
+
+static void print_for_stmt(Stmt* stmt) {
+	print_string("for ");
+	print_token(stmt->for_stmt.counter->var_decl.identifier);
+	print_string(" to ");
+	print_expr(stmt->for_stmt.to);
+	print_newline();
+
+	tab_count++;
+	Stmt** body = stmt->for_stmt.body;
+	u64 body_len = buf_len(body);
+	for (u64 i = 0; i < body_len; ++i) {
+		print_stmt(body[i]);
+		if (i < (body_len - 1)) {
+			print_newline();
+		}
+	}
+	tab_count--;
+	print_right_bracket();
 }
 
 static void print_return_stmt(Stmt* stmt) {

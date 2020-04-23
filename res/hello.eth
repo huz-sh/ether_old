@@ -2,18 +2,21 @@
 [decl void*:malloc [int:size]]
 [decl void:free [void*:ptr]]
 [decl void:putchar [char: c]]
-[decl void:fputs [char*:c int:i]]
 
 [load "hello_world.eth"]
 
+[let int:n 12]
+
 [defn int:main [void]
+	[let int:counter 0]
 	[let void*:input_buffer [malloc 64]]
 	[free input_buffer]
 
-    [let vec2*:v]
-	[set v.y 2]
-
-	[putn 3]]
+	[putn 3]
+	[for i to [+ 2 4]
+		[puts "Hello"]]
+	[for i to [+ 2 4]
+		[puts "Hello"]]]
 
 [struct vec2
     [int:x]

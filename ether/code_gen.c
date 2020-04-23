@@ -26,6 +26,7 @@ static void gen_stmt(Stmt*);
 static void gen_var_decl(Stmt*);
 static void gen_if_stmt(Stmt*);
 static void gen_if_branch(IfBranch*, IfBranchType);
+static void gen_for_stmt(Stmt*);
 static void gen_return_stmt(Stmt*);
 static void gen_expr_stmt(Stmt*);
 
@@ -246,6 +247,7 @@ static void gen_stmt(Stmt* stmt) {
 	switch (stmt->type) {
 		case STMT_VAR_DECL: gen_var_decl(stmt); break;
 		case STMT_IF: gen_if_stmt(stmt); break;
+		case STMT_FOR: gen_for_stmt(stmt); break;
 		case STMT_RETURN: gen_return_stmt(stmt); break;	
 		case STMT_EXPR: gen_expr_stmt(stmt); break;
 		case STMT_STRUCT:
@@ -303,6 +305,30 @@ static void gen_if_branch(IfBranch* branch, IfBranchType type) {
 	tab_count++;
 	for (u64 i = 0; i < buf_len(branch->body); ++i) {
 		gen_stmt(branch->body[i]);
+	}
+	tab_count--;
+	
+	print_tabs_by_indentation();
+	print_right_brace();
+	print_newline();
+}
+
+static void gen_for_stmt(Stmt* stmt) {
+	/* TODO: if for loop counter is modifiable, change this */
+	print_string("for (int ");
+	print_token(stmt->for_stmt.counter->var_decl.identifier);
+	print_string(" = 0; ");
+	print_token(stmt->for_stmt.counter->var_decl.identifier);
+	print_string(" < ");
+	gen_expr(stmt->for_stmt.to);
+	print_string("; ++");
+	print_token(stmt->for_stmt.counter->var_decl.identifier);
+	print_string(") {");
+	print_newline();
+
+	tab_count++;
+	for (u64 i = 0; i < buf_len(stmt->for_stmt.body); ++i) {
+		gen_stmt(stmt->for_stmt.body[i]);
 	}
 	tab_count--;
 	
