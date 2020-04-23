@@ -16,6 +16,8 @@
 	[for i to [+ 2 4]
 		[puts "Hello"]]
 	[for i to [+ 2 4]
+		[puts "Hello"]]
+	[for j to [get_num]
 		[puts "Hello"]]]
 
 [struct vec2
@@ -31,3 +33,6 @@
 		[set n [- n [* 10 a]]]
 		[putn a]]
 	[putchar [+ '0' n]]]
+
+[defn int:get_num [void]
+	[return 2]]
