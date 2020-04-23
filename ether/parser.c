@@ -821,6 +821,17 @@ static void sync_to_next_statement(Parser* p) {
 
 static void init_built_in_data_types(Parser* p) {
 	buf_push(p->built_in_data_types, str_intern("int"));
+
+	buf_push(p->built_in_data_types, str_intern("i8"));
+	buf_push(p->built_in_data_types, str_intern("i16"));
+	buf_push(p->built_in_data_types, str_intern("132"));
+	buf_push(p->built_in_data_types, str_intern("i64"));
+	
+	buf_push(p->built_in_data_types, str_intern("u8"));
+	buf_push(p->built_in_data_types, str_intern("u16"));
+	buf_push(p->built_in_data_types, str_intern("u32"));
+	buf_push(p->built_in_data_types, str_intern("u64"));
+
 	buf_push(p->built_in_data_types, str_intern("char"));
 	buf_push(p->built_in_data_types, str_intern("bool"));
 	buf_push(p->built_in_data_types, str_intern("void"));

@@ -294,6 +294,17 @@ static void init_keywords(Lexer* l) {
 	buf_push(l->keywords, str_intern("at"));
 	
 	buf_push(l->keywords, str_intern("int"));
+
+	buf_push(l->keywords, str_intern("i8"));
+	buf_push(l->keywords, str_intern("i16"));
+	buf_push(l->keywords, str_intern("132"));
+	buf_push(l->keywords, str_intern("i64"));
+	
+	buf_push(l->keywords, str_intern("u8"));
+	buf_push(l->keywords, str_intern("u16"));
+	buf_push(l->keywords, str_intern("u32"));
+	buf_push(l->keywords, str_intern("u64"));
+
 	buf_push(l->keywords, str_intern("char"));
 	buf_push(l->keywords, str_intern("bool"));
 	buf_push(l->keywords, str_intern("void"));

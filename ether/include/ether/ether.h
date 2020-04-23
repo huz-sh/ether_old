@@ -323,6 +323,11 @@ void token_note(Token* token, const char* fmt, ...);
 void linker_init(Stmt** p_stmts);
 Stmt** linker_run(error_code* err_code);
 
+typedef struct {
+	char* a;
+	char* b;
+} ImplicitCastTypeMap;
+
 void resolve_init(Stmt** p_stmts, Stmt** p_structs);
 error_code resolve_run(void);
 

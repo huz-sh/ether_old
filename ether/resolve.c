@@ -17,6 +17,8 @@ static DataType* int_data_type;
 static DataType* char_data_type;
 static DataType* string_data_type;
 static DataType* bool_data_type;
+static ImplicitCastTypeMap* implicit_cast_types;
+static char** types_already_checked;
 
 static void resolve_destroy(void);
 
@@ -49,6 +51,8 @@ static DataType* make_data_type(const char*, u8);
 static DataType* clone_data_type(DataType*);
 static Token* make_token_from_string(const char*);
 static int data_type_match(DataType*, DataType*);
+static bool can_implicit_cast(char*, char*);
+static bool is_type_already_checked_for_cast(char*);
 static bool is_one_token(const char*, Token*, Token*);
 static char* data_type_to_string(DataType*);
 static DataType* get_smaller_type(DataType*, DataType*);
@@ -67,6 +71,7 @@ void resolve_init(Stmt** p_stmts, Stmt** p_structs) {
 	error_occured = false;
 	persistent_error_occured = false;
 	error_count = 0;
+	types_already_checked = null;
 
 	init_data_types();
 }
@@ -540,13 +545,6 @@ static DataType* resolve_number_expr(Expr* expr) {
 	return int_data_type;	
 }
 
-static void init_data_types(void) {
-	int_data_type = make_data_type("int", 0);
-	char_data_type = make_data_type("char", 0);
-	string_data_type = make_data_type("char", 1);
-	bool_data_type = make_data_type("bool", 0);
-}
-
 static Stmt* find_struct_by_name(char* name) {
 	for (u64 i = 0; i < buf_len(structs); ++i) {
 		if (str_intern(structs[i]->struct_stmt.identifier->lexeme) ==
@@ -602,14 +600,62 @@ static int data_type_match(DataType* a, DataType* b) {
 			return DATA_TYPE_MATCH;
 		}
 		else {
+			// if (is_one_token("int", a->type, b->type) &&
+			// 	is_one_token("char", a->type, b->type)) {
+			// 	return DATA_TYPE_IMPLICIT_MATCH;
+			// }
+
 			/* implicit non-pointer cast */
-			if (is_one_token("int", a->type, b->type) &&
-				is_one_token("char", a->type, b->type)) {
+			if (can_implicit_cast(a->type->lexeme, b->type->lexeme)) {
 				return DATA_TYPE_IMPLICIT_MATCH;
 			}
+			buf_free(types_already_checked);
+			buf_clear(types_already_checked);
+			types_already_checked = null;
 		}
 	}
 	return DATA_TYPE_NOT_MATCH;
+}
+
+static bool can_implicit_cast(char* a, char* b) {
+	for (u64 i = 0; i < buf_len(implicit_cast_types); ++i) {
+		bool first_elem_match = (str_intern(implicit_cast_types[i].a) == str_intern(a));
+		bool second_elem_match = (str_intern(implicit_cast_types[i].b) == str_intern(a));
+
+		if (first_elem_match) {
+			if (str_intern(implicit_cast_types[i].b) ==
+				str_intern(b)) {
+				return true;
+			}
+			if (!is_type_already_checked_for_cast(implicit_cast_types[i].b)) {
+				buf_push(types_already_checked, implicit_cast_types[i].b);
+				return can_implicit_cast(implicit_cast_types[i].a, b);
+			}
+			continue;
+		}
+		else if (second_elem_match) {
+			if (str_intern(implicit_cast_types[i].a) ==
+				str_intern(b)) {
+				return true;
+			}
+			if (!is_type_already_checked_for_cast(implicit_cast_types[i].a)) {
+				buf_push(types_already_checked, implicit_cast_types[i].a);
+				return can_implicit_cast(implicit_cast_types[i].a, b);
+			}
+			continue;
+		}
+	}
+	return false;
+}
+
+static bool is_type_already_checked_for_cast(char* type) {
+	for (u64 i = 0; i < buf_len(types_already_checked); ++i) {
+		if (str_intern(type) ==
+			str_intern(types_already_checked[i])) {
+			return true;
+		}
+	}
+	return false;
 }
 
 static bool is_one_token(const char* equal, Token* a, Token* b) {
@@ -686,4 +732,32 @@ static void implicit_cast_warning(Token* error_token,
 			"implicit cast from '%s' to '%s';",
 			data_type_to_string(a),
 			data_type_to_string(b));	
+}
+
+static void init_data_types(void) {
+	int_data_type = make_data_type("int", 0);
+	char_data_type = make_data_type("char", 0);
+	string_data_type = make_data_type("char", 1);
+	bool_data_type = make_data_type("bool", 0);
+
+	buf_push(implicit_cast_types, 
+		(ImplicitCastTypeMap){ str_intern("int"), str_intern("char") });
+
+	buf_push(implicit_cast_types, 
+		(ImplicitCastTypeMap){ str_intern("int"), str_intern("i8") });
+	buf_push(implicit_cast_types, 
+		(ImplicitCastTypeMap){ str_intern("int"), str_intern("i16") });
+	buf_push(implicit_cast_types, 
+		(ImplicitCastTypeMap){ str_intern("int"), str_intern("132") });
+	buf_push(implicit_cast_types, 
+		(ImplicitCastTypeMap){ str_intern("int"), str_intern("i64") });
+
+	buf_push(implicit_cast_types, 
+		(ImplicitCastTypeMap){ str_intern("int"), str_intern("u8") });
+	buf_push(implicit_cast_types, 
+		(ImplicitCastTypeMap){ str_intern("int"), str_intern("u16") });
+	buf_push(implicit_cast_types, 
+		(ImplicitCastTypeMap){ str_intern("int"), str_intern("u32") });
+	buf_push(implicit_cast_types, 
+		(ImplicitCastTypeMap){ str_intern("int"), str_intern("u64") });
 }
