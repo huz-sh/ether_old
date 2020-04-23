@@ -10,6 +10,10 @@ static uint tab_count;
 
 static void code_gen_destroy(void);
 
+static void gen_include_headers(void);
+static void gen_include_header(char*);
+static void gen_typedefs(void);
+static void gen_typedef(char*, char*);
 static void gen_struct_decls(void);
 static void gen_struct_decl(Stmt*);
 static void gen_structs(void);
@@ -70,6 +74,8 @@ void code_gen_init(Stmt** p_stmts, SourceFile* p_srcfile) {
 }
 
 void code_gen_run(void) {
+	gen_include_headers();
+	gen_typedefs();
 	gen_struct_decls();
 	gen_structs();
 	gen_global_var_decls();
@@ -86,6 +92,41 @@ void code_gen_run(void) {
 
 static void code_gen_destroy(void) {
 	buf_free(output_code);
+}
+
+static void gen_include_headers(void) {
+	gen_include_header("stdint.h");
+
+	print_newline();
+}
+
+static void gen_include_header(char* name) {
+	print_string("#include <");
+	print_string(name);
+	print_string(">\n");
+}
+
+static void gen_typedefs(void) {
+	gen_typedef("int8_t", "i8");
+	gen_typedef("int16_t", "i16");
+	gen_typedef("int32_t", "i32");
+	gen_typedef("int64_t", "i64");
+
+	gen_typedef("uint8_t", "u8");
+	gen_typedef("uint16_t", "u16");
+	gen_typedef("uint32_t", "u32");
+	gen_typedef("uint64_t", "u64");
+
+	print_newline();
+}
+
+static void gen_typedef(char* from, char* to) {
+	print_string("typedef ");
+	print_string(from);
+	print_space();
+	print_string(to);
+	print_semicolon();
+	print_newline();
 }
 
 static void gen_struct_decls(void) {

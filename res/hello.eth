@@ -12,19 +12,15 @@
 	[let void*:input_buffer [malloc 64]]
 	[free input_buffer]
 
+	[let u8:byte 1]
+
 	[putn 3]
 	[for i to [+ 2 4]
 		[puts "Hello"]]
 	[for i to [+ 2 4]
 		[puts "Hello"]]
 	[for j to [get_num]
-		[puts "Hello"]]
-
-	[let vec2:normal_vec2]
-	[let custom_type:normal_custom_type]
-	[let i8:normal_integer normal_vec2]
-	[let u64:myu64 10]
-	[let i8:normal_anything normal_custom_type]]
+		[puts "Hello"]]]
 
 [struct vec2
     [int:x]
