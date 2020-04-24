@@ -26,6 +26,7 @@ static Expr* make_dot_access_expr(Parser*, Expr*, Token*);
 static Expr* make_number_expr(Parser*, Token*);
 static Expr* make_char_expr(Parser*, Token*);
 static Expr* make_null_expr(Parser*, Token*);
+static Expr* make_bool_expr(Parser*, Token*);
 static Expr* make_string_expr(Parser*, Token*);
 static Expr* make_variable_expr(Parser*, Token*);
 static Expr* make_func_call_expr(Parser*, Token*, Expr**);
@@ -529,6 +530,10 @@ static Expr* parse_primary_expr(Parser* p) {
 	else if (match_keyword(p, "null")) {
 		return make_null_expr(p, previous(p));
 	}
+	else if (match_keyword(p, "true") ||
+			 match_keyword(p, "false")) {
+		return make_bool_expr(p, previous(p));
+	}
 	else if (match_token_type(p, TOKEN_IDENTIFIER)) {
 		return make_variable_expr(p, previous(p));
 	}
@@ -631,6 +636,14 @@ static Expr* make_null_expr(Parser* p, Token* head) {
 	MAKE_EXPR(new);
 	new->type = EXPR_NULL;
 	new->head = head;
+	return new;
+}
+
+static Expr* make_bool_expr(Parser* p, Token* head) {
+	MAKE_EXPR(new);
+	new->type = EXPR_BOOL;
+	new->head = head;
+	new->boolean = head;
 	return new;
 }
 

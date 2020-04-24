@@ -22,6 +22,7 @@ static void print_number_expr(Expr*);
 static void print_char_expr(Expr*);
 static void print_string_expr(Expr*);
 static void print_null_expr(Expr*);
+static void print_bool_expr(Expr*);
 static void print_variable_expr(Expr*);
 static void print_func_call(Expr*);
 
@@ -246,7 +247,8 @@ static void print_expr(Expr* expr) {
 		case EXPR_NUMBER: print_number_expr(expr); break;
 		case EXPR_CHAR: print_char_expr(expr); break;	
 		case EXPR_STRING: print_string_expr(expr); break;
-		case EXPR_NULL: print_null_expr(expr); break;	
+		case EXPR_NULL: print_null_expr(expr); break;
+		case EXPR_BOOL: print_bool_expr(expr); break;	
 		case EXPR_VARIABLE: print_variable_expr(expr); break;
 		case EXPR_FUNC_CALL: print_func_call(expr); break;
 	}
@@ -276,6 +278,10 @@ static void print_string_expr(Expr* expr) {
 
 static void print_null_expr(Expr* expr) {
 	print_string("null");
+}
+
+static void print_bool_expr(Expr* expr) {
+	print_token(expr->boolean);
 }
 
 static void print_variable_expr(Expr* expr) {

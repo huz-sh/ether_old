@@ -291,7 +291,8 @@ static DataType* resolve_expr(Expr* expr) {
 		case EXPR_NUMBER:	 	return resolve_number_expr(expr);
 		case EXPR_STRING:	 	return string_data_type;
 		case EXPR_CHAR:		 	return char_data_type;
-		case EXPR_NULL:			return null_data_type;	
+		case EXPR_NULL:			return null_data_type;
+		case EXPR_BOOL:			return bool_data_type;	
 		case EXPR_VARIABLE:  	return resolve_variable_expr(expr);
 		case EXPR_FUNC_CALL: 	return resolve_func_call(expr);
 	}

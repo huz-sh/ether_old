@@ -161,6 +161,7 @@ typedef enum {
 	EXPR_CHAR,
 	EXPR_STRING,
 	EXPR_NULL,
+	EXPR_BOOL,
 	EXPR_VARIABLE,
 	EXPR_FUNC_CALL,
 	EXPR_DOT_ACCESS,
@@ -196,6 +197,7 @@ struct Expr {
 		Token* number;
 		Token* chr;
 		Token* string;
+		Token* boolean;
 	};
 };
 

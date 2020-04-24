@@ -43,6 +43,7 @@ static void gen_number_expr(Expr*);
 static void gen_char_expr(Expr*);
 static void gen_string_expr(Expr*);
 static void gen_null_expr(Expr*);
+static void gen_bool_expr(Expr*);
 static void gen_variable_expr(Expr*);
 static void gen_func_call(Expr*);
 static void gen_set_expr(Expr*);
@@ -101,6 +102,8 @@ static void code_gen_destroy(void) {
 
 static void gen_defines(void) {
 	gen_define("null", "(void*)0");
+	gen_define("true", "1");
+	gen_define("false", "0");
 
 	print_newline();
 }
@@ -440,6 +443,7 @@ static void gen_expr(Expr* expr) {
 		case EXPR_CHAR: gen_char_expr(expr); break;	
 		case EXPR_STRING: gen_string_expr(expr); break;
 		case EXPR_NULL: gen_null_expr(expr); break;
+		case EXPR_BOOL: gen_bool_expr(expr); break;	
 		case EXPR_VARIABLE: gen_variable_expr(expr); break;
 		case EXPR_FUNC_CALL: gen_func_call(expr); break;	
 	}
@@ -473,6 +477,10 @@ static void gen_string_expr(Expr* expr) {
 
 static void gen_null_expr(Expr* expr) {
 	print_string("null");
+}
+
+static void gen_bool_expr(Expr* expr) {
+	print_token(expr->boolean);
 }
 
 static void gen_variable_expr(Expr* expr) {
