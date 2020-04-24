@@ -309,4 +309,5 @@ static void init_keywords(Lexer* l) {
 	buf_push(l->keywords, str_intern("char"));
 	buf_push(l->keywords, str_intern("bool"));
 	buf_push(l->keywords, str_intern("void"));
+	buf_push(l->keywords, str_intern("null"));
 }

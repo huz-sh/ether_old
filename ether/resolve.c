@@ -17,6 +17,7 @@ static DataType* int_data_type;
 static DataType* char_data_type;
 static DataType* string_data_type;
 static DataType* bool_data_type;
+static DataType* null_data_type;
 static ImplicitCastTypeMap* implicit_cast_types;
 static char** types_already_checked;
 static TypeSizeMap* type_sizes;
@@ -265,7 +266,8 @@ static DataType* resolve_expr(Expr* expr) {
 		case EXPR_DOT_ACCESS:	return resolve_dot_access_expr(expr);
 		case EXPR_NUMBER:	 	return resolve_number_expr(expr);
 		case EXPR_STRING:	 	return string_data_type;
-		case EXPR_CHAR:		 	return char_data_type;	
+		case EXPR_CHAR:		 	return char_data_type;
+		case EXPR_NULL:			return null_data_type;	
 		case EXPR_VARIABLE:  	return resolve_variable_expr(expr);
 		case EXPR_FUNC_CALL: 	return resolve_func_call(expr);
 	}
@@ -733,6 +735,7 @@ static void init_data_types(void) {
 	char_data_type = make_data_type("char", 0);
 	string_data_type = make_data_type("char", 1);
 	bool_data_type = make_data_type("bool", 0);
+	null_data_type = make_data_type("void", 1);
 
 	buf_push(implicit_cast_types, 
 		(ImplicitCastTypeMap){ str_intern("int"), str_intern("char") });

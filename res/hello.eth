@@ -4,7 +4,7 @@
 [decl int:time [void*:p]]
 
 [defn int:main [void]
-	[srand [time 0]]
+	[srand [time null]]
 	[let int:comp_guess [% [rand] 100]]
 	[putn comp_guess]]
 
