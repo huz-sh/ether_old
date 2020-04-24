@@ -9,6 +9,7 @@ static void print_func(Stmt*);
 static void print_func_header(Stmt*, bool);
 static void print_func_decl(Stmt*);
 static void print_var_decl(Stmt*);
+static void print_extern_stmt(Stmt*);
 static void print_if_stmt(Stmt*);
 static void print_if_branch(IfBranch*, IfBranchType);
 static void print_for_stmt(Stmt*);
@@ -63,7 +64,14 @@ static void print_stmt(Stmt* stmt) {
 				print_func_decl(stmt);
 			}
 		} break;
-		case STMT_VAR_DECL: 	print_var_decl(stmt); break;
+		case STMT_VAR_DECL: {
+			if (stmt->var_decl.is_variable) {
+				print_var_decl(stmt);
+			}
+			else {
+				print_extern_stmt(stmt);
+			}
+		} break;
 		case STMT_IF:			print_if_stmt(stmt); break;
 		case STMT_FOR:			print_for_stmt(stmt); break;
 		case STMT_WHILE:		print_while_stmt(stmt); break;
@@ -153,6 +161,13 @@ static void print_var_decl(Stmt* stmt) {
 		print_space();
 		print_expr(stmt->var_decl.initializer);
 	}
+}
+
+static void print_extern_stmt(Stmt* stmt) {
+	print_string("extern ");
+	print_data_type(stmt->var_decl.type);
+	print_colon();
+	print_token(stmt->var_decl.identifier);	
 }
 
 static void print_if_stmt(Stmt* stmt) {

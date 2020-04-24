@@ -2,13 +2,44 @@
 [decl int:rand [void]]
 [decl void:srand [int:i]]
 [decl int:time [void*:p]]
+[decl int:strtol [char*:c char*:endptr int:base]]
+[decl char*:fgets [char*:buf u64:sz FILE*:stream]]
+[decl void*:malloc [u64:size]]
+[decl void:free [void*:p]]
+[decl void:puts [char*:c]]
+[decl void:fputs [char*:str FILE*:fp]]
 
 [defn int:main [void]
 	[srand [time null]]
-	[let int:comp_guess [% [rand] 100]]
-	[putn comp_guess]
-	[while true
-		[putn 12]]]
+	[let int:comp_guess [+ [% [rand] 100] 1]]
+	;; [putn comp_guess]
+
+	[let char*:input [malloc 64]]
+	[let bool:running true]
+	[let int:tries 0]
+	[while running
+		[set tries [+ tries 1]]
+		[cputs "> "]
+		[if [= null [fgets input 10 stdin]]
+			[return 0]]
+			
+		[let int:input_int [strtol input null 10]]
+		;; [putn input_int]
+		[if [= input_int 0]
+			[puts "Enter valid integer.\n"]]
+		[else
+			[if [= input_int comp_guess]
+				[puts "You win!"]
+				[cputs "Tries: "]
+				[putn tries]
+				[puts ""]
+				[return 0]]
+			[elif [< input_int comp_guess]
+				[puts "Go a little up!\n"]]
+			[elif [> input_int comp_guess]
+				[puts "Down, Down\n"]]]]
+				
+	[free input]]
 
 [defn void:putn [int:n]
 	[if [> n 0]
@@ -16,3 +47,12 @@
 		[set n [- n [* 10 a]]]
 		[putn a]]
 	[putchar [+ '0' n]]]
+
+[defn void:cputs [char*:str]
+	[fputs str stdout]]
+
+[struct FILE]
+
+[extern FILE*:stdout]
+[extern FILE*:stdin]
+[extern FILE*:stderr]

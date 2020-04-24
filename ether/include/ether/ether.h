@@ -242,6 +242,7 @@ typedef struct {
 	Token* identifier;
 	Expr* initializer;
 	bool is_global_var;
+	bool is_variable; /* false if extern var */
 } VarDecl;
 
 typedef enum {

@@ -10,6 +10,7 @@ static error_code parse_func_header(Parser*, Stmt*, bool);
 static Stmt* parse_func_decl(Parser*);
 static void parse_load_stmt(Parser*);
 static Stmt* parse_var_decl(Parser*, DataType*, Token*, bool);
+static Stmt* parse_extern_stmt(Parser*);
 static Stmt* parse_if_stmt(Parser*);
 static void parse_if_branch(Parser*, Stmt*, IfBranchType);
 static Stmt* parse_for_stmt(Parser*);
@@ -129,6 +130,9 @@ static Stmt* parse_decl(Parser* p) {
 	}
 	else if (match_keyword(p, "decl")) {
 		stmt = parse_func_decl(p);
+	}
+	else if (match_keyword(p, "extern")) {
+		stmt = parse_extern_stmt(p);
 	}
 	else if (match_keyword(p, "load")) {
 		parse_load_stmt(p);
@@ -359,6 +363,23 @@ static Stmt* parse_var_decl(Parser* p, DataType* d, Token* t, bool is_global_var
 	new->var_decl.identifier = t;
 	new->var_decl.initializer = init;
 	new->var_decl.is_global_var = is_global_var;
+	new->var_decl.is_variable = true;
+	return new;
+}
+
+static Stmt* parse_extern_stmt(Parser* p) {
+	DataType* type = consume_data_type(p);
+	consume_colon(p);
+	Token* identifier = consume_identifier(p);
+	consume_right_bracket(p);
+
+	MAKE_STMT(new);
+	new->type = STMT_VAR_DECL;
+	new->var_decl.type = type;
+	new->var_decl.identifier = identifier;
+	new->var_decl.initializer = null;
+	new->var_decl.is_global_var = true;
+	new->var_decl.is_variable = false;
 	return new;
 }
 

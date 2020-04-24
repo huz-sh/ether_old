@@ -23,6 +23,7 @@ static void check_func(Stmt*);
 static void check_func_decl(Stmt*);
 static void check_global_var_decl(Stmt*);
 static void check_var_decl(Stmt*);
+static void check_extern_stmt(Stmt*);
 static void check_if_stmt(Stmt*);
 static void check_if_branch(IfBranch*, IfBranchType);
 static void check_for_stmt(Stmt*);

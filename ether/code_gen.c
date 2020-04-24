@@ -28,6 +28,7 @@ static void gen_func_decl(Stmt*);
 static void gen_func_prototype(Stmt*);
 static void gen_file(Stmt**);
 static void gen_func(Stmt*);
+static void gen_extern_stmt(Stmt*);
 static void gen_stmt(Stmt*);
 static void gen_var_decl(Stmt*);
 static void gen_if_stmt(Stmt*);
@@ -139,6 +140,8 @@ static void gen_typedefs(void) {
 	gen_typedef("uint32_t", "u32");
 	gen_typedef("uint64_t", "u64");
 
+	gen_typedef("uint8_t", "bool");
+
 	print_newline();
 }
 
@@ -237,8 +240,14 @@ static void gen_global_var_decls(void) {
 	for (u64 stmt = 0; stmt < buf_len(stmts); ++stmt) {
 		Stmt* current_stmt = stmts[stmt];
 		if (current_stmt->type == STMT_VAR_DECL) {
-			gen_var_decl(current_stmt);
+			if (current_stmt->var_decl.is_variable) {
+				gen_var_decl(current_stmt);
+			}
+			else {
+				gen_extern_stmt(current_stmt);
+			}
 		}
+		
 	}
 	print_newline();
 }
@@ -302,6 +311,15 @@ static void gen_func(Stmt* stmt) {
 	tab_count--;
 	print_right_brace();
 	print_newline();
+	print_newline();
+}
+
+static void gen_extern_stmt(Stmt* stmt) {
+	print_string("extern ");
+	print_data_type(stmt->var_decl.type);
+	print_space();
+	print_token(stmt->var_decl.identifier);
+	print_semicolon();
 	print_newline();
 }
 

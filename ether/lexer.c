@@ -283,6 +283,7 @@ static void init_keywords(Lexer* l) {
 	buf_push(l->keywords, str_intern("pub"));	
 	buf_push(l->keywords, str_intern("load"));
 	buf_push(l->keywords, str_intern("let"));
+	buf_push(l->keywords, str_intern("extern"));
 	buf_push(l->keywords, str_intern("if"));
 	buf_push(l->keywords, str_intern("elif"));
 	buf_push(l->keywords, str_intern("else"));
