@@ -31,6 +31,7 @@ static void resolve_var_decl(Stmt*);
 static void resolve_if_stmt(Stmt*);
 static void resolve_if_branch(IfBranch*, IfBranchType);
 static void resolve_for_stmt(Stmt*);
+static void resolve_while_stmt(Stmt*);
 static void resolve_return_stmt(Stmt*);
 static void resolve_expr_stmt(Stmt*);
 
@@ -113,6 +114,7 @@ static void resolve_stmt(Stmt* stmt) {
 		case STMT_VAR_DECL: resolve_var_decl(stmt); break;
 		case STMT_IF: resolve_if_stmt(stmt); break;
 		case STMT_FOR: resolve_for_stmt(stmt); break;
+		case STMT_WHILE: resolve_while_stmt(stmt); break;
 		case STMT_RETURN: resolve_return_stmt(stmt); break;
 		case STMT_EXPR: resolve_expr_stmt(stmt); break;
 		case STMT_STRUCT: break;	/* TODO: check */
@@ -208,6 +210,28 @@ static void resolve_for_stmt(Stmt* stmt) {
 
 	for (u64 i = 0; i < buf_len(stmt->for_stmt.body); ++i) {
 		resolve_stmt(stmt->for_stmt.body[i]);
+	}
+}
+
+static void resolve_while_stmt(Stmt* stmt) {
+	CHECK_ERROR;
+	DataType* expr_type = resolve_expr(stmt->while_stmt.cond);
+	EXIT_ERROR_VOID_RETURN;
+
+	int match = data_type_match(expr_type, bool_data_type);
+	if (match == DATA_TYPE_NOT_MATCH) {
+		error(stmt->while_stmt.cond->head,
+			  "expected 'bool' data type in 'while' condition expression, "
+			  "but got '%s';", data_type_to_string(expr_type));
+	}
+	else if (match == DATA_TYPE_IMPLICIT_MATCH) {
+		warning(stmt->while_stmt.cond->head,
+				"implicit cast to 'bool' from '%s' in 'while' condition expression;",
+				data_type_to_string(expr_type));
+	}
+
+	for (u64 i = 0; i < buf_len(stmt->while_stmt.body); ++i) {
+		resolve_stmt(stmt->while_stmt.body[i]);
 	}
 }
 

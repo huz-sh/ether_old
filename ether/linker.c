@@ -26,6 +26,7 @@ static void check_var_decl(Stmt*);
 static void check_if_stmt(Stmt*);
 static void check_if_branch(IfBranch*, IfBranchType);
 static void check_for_stmt(Stmt*);
+static void check_while_stmt(Stmt*);
 static void check_return_stmt(Stmt*);
 static void check_expr_stmt(Stmt*);
 
@@ -166,6 +167,7 @@ static void check_stmt(Stmt* stmt) {
 		} break;
 		case STMT_IF: check_if_stmt(stmt); break;
 		case STMT_FOR: check_for_stmt(stmt); break;
+		case STMT_WHILE: check_while_stmt(stmt); break;	
 		case STMT_RETURN: check_return_stmt(stmt); break;	
 		case STMT_EXPR: check_expr_stmt(stmt); break;
 	}
@@ -286,6 +288,16 @@ static void check_for_stmt(Stmt* stmt) {
 	for (u64 i = 0; i < buf_len(stmt->for_stmt.body); ++i) {
 		check_stmt(stmt->for_stmt.body[i]);
 	}
+	REVERT_SCOPE(scope);
+}
+
+static void check_while_stmt(Stmt* stmt) {
+	CHANGE_SCOPE(scope);
+	check_expr(stmt->while_stmt.cond);
+
+	for (u64 i = 0; i < buf_len(stmt->while_stmt.body); ++i) {
+		check_stmt(stmt->while_stmt.body[i]);
+	}	
 	REVERT_SCOPE(scope);
 }
 

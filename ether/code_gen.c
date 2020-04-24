@@ -33,6 +33,7 @@ static void gen_var_decl(Stmt*);
 static void gen_if_stmt(Stmt*);
 static void gen_if_branch(IfBranch*, IfBranchType);
 static void gen_for_stmt(Stmt*);
+static void gen_while_stmt(Stmt*);
 static void gen_return_stmt(Stmt*);
 static void gen_expr_stmt(Stmt*);
 
@@ -307,6 +308,7 @@ static void gen_stmt(Stmt* stmt) {
 		case STMT_VAR_DECL: gen_var_decl(stmt); break;
 		case STMT_IF: gen_if_stmt(stmt); break;
 		case STMT_FOR: gen_for_stmt(stmt); break;
+		case STMT_WHILE: gen_while_stmt(stmt); break;	
 		case STMT_RETURN: gen_return_stmt(stmt); break;	
 		case STMT_EXPR: gen_expr_stmt(stmt); break;
 		case STMT_STRUCT:
@@ -394,6 +396,24 @@ static void gen_for_stmt(Stmt* stmt) {
 	print_tabs_by_indentation();
 	print_right_brace();
 	print_newline();
+}
+
+static void gen_while_stmt(Stmt* stmt) {
+	print_string("while (");
+	gen_expr(stmt->while_stmt.cond);
+	print_string(") {");
+	print_newline();
+
+	tab_count++;
+	for (u64 i = 0; i < buf_len(stmt->while_stmt.body); ++i) {
+		gen_stmt(stmt->while_stmt.body[i]);
+	}
+	tab_count--;
+	
+	print_tabs_by_indentation();
+	print_right_brace();
+	print_newline();
+	
 }
 
 static void gen_return_stmt(Stmt* stmt) {

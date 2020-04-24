@@ -13,6 +13,7 @@ static Stmt* parse_var_decl(Parser*, DataType*, Token*, bool);
 static Stmt* parse_if_stmt(Parser*);
 static void parse_if_branch(Parser*, Stmt*, IfBranchType);
 static Stmt* parse_for_stmt(Parser*);
+static Stmt* parse_while_stmt(Parser*);
 static Stmt* parse_return_stmt(Parser*, Token*);
 static Stmt* parse_expr_stmt(Parser*);
 
@@ -162,6 +163,9 @@ static Stmt* parse_stmt(Parser* p) {
 	}
 	else if (match_keyword(p, "for")) {
 		stmt = parse_for_stmt(p);
+	}
+	else if (match_keyword(p, "while")) {
+		stmt = parse_while_stmt(p);
 	}
 	else if (match_keyword(p, "elif") || match_keyword(p, "else")) {
 		error(p, previous(p), "'%s' branch without preceding 'if' statement; "
@@ -454,6 +458,25 @@ static Stmt* parse_for_stmt(Parser* p) {
 	new->for_stmt.counter = counter;
 	new->for_stmt.to = to;
 	new->for_stmt.body = body;
+	return new;
+}
+
+static Stmt* parse_while_stmt(Parser* p) {
+	Expr* cond = parse_expr(p);
+
+	Stmt** body = null;
+	while (!match_right_bracket(p)) {
+		CUR_ERROR;
+		Stmt* stmt = parse_stmt(p);
+		if (stmt) buf_push(body, stmt);
+		EXIT_ERROR null;
+		CHECK_EOF(null);
+	}
+
+	MAKE_STMT(new);
+	new->type = STMT_WHILE;
+	new->while_stmt.cond = cond;
+	new->while_stmt.body = body;
 	return new;
 }
 

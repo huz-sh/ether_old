@@ -210,6 +210,7 @@ typedef enum {
 	STMT_VAR_DECL,
 	STMT_IF,
 	STMT_FOR,
+	STMT_WHILE,
 	STMT_RETURN,
 	STMT_EXPR,
 } StmtType;
@@ -265,6 +266,11 @@ typedef struct {
 } For;
 
 typedef struct {
+	Expr* cond;
+	Stmt** body;
+} While;
+
+typedef struct {
 	Expr* expr;
 	Stmt* function_referernced;
 	Token* keyword;
@@ -278,6 +284,7 @@ struct Stmt {
 		VarDecl var_decl;
 		If if_stmt;
 		For for_stmt;
+		While while_stmt;
 		Return return_stmt;
 		Expr* expr;
 	};

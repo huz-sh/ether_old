@@ -6,7 +6,9 @@
 [defn int:main [void]
 	[srand [time null]]
 	[let int:comp_guess [% [rand] 100]]
-	[putn comp_guess]]
+	[putn comp_guess]
+	[while 1
+		[putn 12]]]
 
 [defn void:putn [int:n]
 	[if [> n 0]
