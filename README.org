@@ -1,5 +1,7 @@
 * Ether
 
+*** NOTE: ETHER IS NOW NO LONGER ACTIVELY DEVELOPED. A SUCCESSOR IS IN DEVELOPMENT AND CAN BE FOUND @ https://github.com/huz-sh/ether WITH THE SAME REPOSITORY NAME.
+
 /Ether/ is a low-level, general purpose systems
 programming language that aims to improve on C.
 C is already a (nearly) perfect language designed to 
